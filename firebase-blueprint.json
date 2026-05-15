@@ -1,0 +1,66 @@
+{
+  "entities": {
+    "Employee": {
+      "title": "Employee",
+      "description": "An employee in the team",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "hex": { "type": "string" }
+      },
+      "required": ["name", "hex"]
+    },
+    "Shift": {
+      "title": "Shift",
+      "description": "A daily shift for an employee",
+      "type": "object",
+      "properties": {
+        "off": { "type": "boolean" },
+        "s": { 
+          "type": "array",
+          "items": { "type": "number" }
+        }
+      },
+      "required": ["off", "s"]
+    },
+    "Day": {
+      "title": "Day",
+      "description": "A single day in the planning",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "full": { "type": "string" },
+        "date": { "type": "string" },
+        "shifts": {
+          "type": "array",
+          "items": { "$ref": "#/entities/Shift" }
+        }
+      },
+      "required": ["id", "full", "date", "shifts"]
+    },
+    "WeekPlanning": {
+      "title": "WeekPlanning",
+      "description": "Full planning for a specific week",
+      "type": "object",
+      "properties": {
+        "monday": { "type": "string", "format": "date-time" },
+        "data": {
+          "type": "array",
+          "items": { "$ref": "#/entities/Day" }
+        },
+        "employees": {
+          "type": "array",
+          "items": { "$ref": "#/entities/Employee" }
+        },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["monday", "data", "employees"]
+    }
+  },
+  "firestore": {
+    "/plannings/{weekId}": {
+      "schema": "WeekPlanning",
+      "description": "Collection of weekly plannings keyed by Monday date string"
+    }
+  }
+}

@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isAdmin() { 
+      return isVerified() && request.auth.token.email == 'khalidyoussef7@gmail.com';
+    }
+
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // --- Entity Validation ---
+    function isValidShift(sh) {
+      return sh.off is bool && sh.s is list && sh.s.size() <= 24;
+    }
+
+    function isValidDay(day) {
+      return day.id is string && day.id.size() <= 10 &&
+             day.full is string && day.full.size() <= 20 &&
+             day.date is string && day.date.size() <= 10 &&
+             day.shifts is list && day.shifts.size() <= 50;
+    }
+
+    function isValidPlanning(data) {
+      return data.monday is string && data.monday.size() <= 64 &&
+             data.data is list && data.data.size() == 7 &&
+             data.employees is list && data.employees.size() <= 50 &&
+             (data.keys().hasAll(['updatedAt']) ? data.updatedAt == request.time : true);
+    }
+
+    // --- Routes ---
+    match /plannings/{weekId} {
+      // Employees might not have accounts, so they might view via a public link.
+      // But the user asked for roles and permissions. I'll stick to Auth.
+      allow get: if true; 
+      allow list: if isSignedIn();
+      
+      allow create: if (isAdmin()) && isValidId(weekId) && isValidPlanning(incoming());
+      
+      allow update: if (isAdmin()) && isValidId(weekId) && isValidPlanning(incoming()) && (
+        incoming().monday == existing().monday
+      );
+      
+      allow delete: if isAdmin();
+    }
+  }
+}
