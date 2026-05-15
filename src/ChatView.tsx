@@ -128,7 +128,7 @@ export const ChatView = ({ role, employeeIdx, employees, db }: any) => {
         ? "Manager"
         : employees[employeeIdx]?.name || "Unknown";
     const senderColor =
-      role === "manager" ? "#8B5CF6" : employees[employeeIdx]?.hex || "#666";
+      role === "manager" ? "#8B5CF6" : "#e60000";
 
     try {
       await addDoc(collection(db, "chat", "general", "messages"), {
@@ -165,7 +165,7 @@ export const ChatView = ({ role, employeeIdx, employees, db }: any) => {
       const senderColor =
         role === "manager"
           ? "#8B5CF6"
-          : employees[employeeIdx]?.hex || "#666";
+          : "#e60000";
 
       try {
         await addDoc(collection(db, "chat", "general", "messages"), {
@@ -195,7 +195,7 @@ export const ChatView = ({ role, employeeIdx, employees, db }: any) => {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col h-full bg-card rounded-[2.5rem] shadow-xl overflow-hidden"
+      className="flex flex-col h-full bg-card rounded-xl shadow-xl overflow-hidden"
     >
       <div className="p-4 lg:p-6 border-b border-border flex items-center justify-between">
         <div>

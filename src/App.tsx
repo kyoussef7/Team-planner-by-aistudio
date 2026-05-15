@@ -41,7 +41,6 @@ import {
   RefreshCw,
   UserCircle,
   FileText,
-  Settings,
 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
@@ -171,39 +170,40 @@ const DayRow = ({
   toggleDayOff,
   toggleSlot,
   shift,
+  loggedInEmployeeIdx,
 }: any) => {
   const hours = shift.s.reduce((a: number, b: number) => a + (b || 0), 0);
-  const ini = emp.name.slice(0, 2).toUpperCase();
+  const isMe = loggedInEmployeeIdx === ei;
 
   return (
     <div
       className={cn(
-        "flex items-center px-2 lg:px-8 py-1.5 lg:py-4 transition-all duration-200 border-b border-border2/30 last:border-0",
-        shift.off ? "bg-bg/10" : "hover:bg-card2/30",
+        "flex items-center px-4 lg:px-10 py-2 lg:py-3 transition-all duration-200 border-b border-border/10 last:border-0 group relative",
+        shift.off ? "bg-bg/5" : "hover:bg-accent/[0.02]",
       )}
     >
-      <div className="flex items-center gap-1.5 lg:gap-3 w-[65px] lg:w-[150px] flex-shrink-0 pr-1.5 lg:pr-4 lg:border-r lg:border-border2/50 mr-1.5 lg:mr-4">
-        <div
+      <div className="flex items-center gap-3 lg:gap-6 w-[85px] lg:w-[220px] shrink-0 pr-4">
+        <motion.div
+          whileTap={isEdit ? { scale: 0.9 } : {}}
           className={cn(
-            "w-7 h-7 lg:w-9 lg:h-9 rounded-lg flex-shrink-0 flex items-center justify-center font-display font-bold text-[9px] lg:text-xs transition-all shadow-sm",
-            shift.off ? "opacity-30 grayscale" : "",
+            "w-7 h-7 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl flex-shrink-0 flex items-center justify-center font-display font-black text-[10px] lg:text-lg transition-all shadow-sm",
+            shift.off ? "opacity-20 grayscale" : "shadow-accent/10",
           )}
           style={
             !shift.off
-              ? { backgroundColor: emp.hex + "15", color: emp.hex }
-              : { backgroundColor: "var(--border2)", color: "var(--txt3)" }
+              ? { backgroundColor: isMe ? "var(--me)" : "var(--accent)", color: "white" }
+              : { backgroundColor: "var(--card2)", color: "var(--txt3)" }
           }
           onClick={() => isEdit && toggleDayOff(di, ei)}
         >
-          {ini}
-        </div>
-        <div className="truncate min-w-0 flex-1">
+          {emp.name.slice(0, 1).toUpperCase()}
+        </motion.div>
+        <div className="truncate min-w-0 flex-1 hidden sm:block">
           <p
             className={cn(
-              "font-display font-bold text-[10px] lg:text-sm tracking-tight truncate",
-              shift.off ? "text-txt3" : "",
+              "font-display font-black text-[10px] lg:text-base tracking-tighter truncate uppercase leading-tight transition-colors",
+              shift.off ? "text-txt3 opacity-40" : isMe ? "text-me" : "text-txt opacity-70",
             )}
-            style={{ color: !shift.off ? emp.hex : undefined }}
             onClick={() => isEdit && toggleDayOff(di, ei)}
           >
             {emp.name}
@@ -211,43 +211,52 @@ const DayRow = ({
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-12 gap-1 h-8 lg:h-12 relative">
+      <div className="flex-1 grid grid-cols-12 gap-1 lg:gap-2 h-6 lg:h-9 relative">
         {shift.off ? (
-          <div className="col-span-12 bg-repeating-lines opacity-10 rounded-md flex items-center justify-center border border-border/20">
-            <span className="font-mono text-[8px] lg:text-xs tracking-widest text-txt3 uppercase font-black">
-              Day Off
+          <div
+            onClick={() => isEdit && toggleDayOff(di, ei)}
+            className="col-span-12 bg-card2/30 backdrop-blur-sm rounded-md lg:rounded-lg flex items-center justify-center border border-dashed border-border/40 cursor-pointer group-hover:border-accent/40 transition-all"
+          >
+            <span className="font-display text-[7px] lg:text-[9px] tracking-[0.4em] text-txt3 uppercase font-black opacity-20 group-hover:opacity-50 transition-opacity">
+              Repos
             </span>
           </div>
         ) : (
           shift.s.map((v: number, si: number) => (
-            <div
+            <motion.div
               key={si}
+              whileTap={isEdit ? { scale: 0.95 } : {}}
               onClick={() => isEdit && toggleSlot(di, ei, si)}
               className={cn(
-                "h-full rounded-md border transition-all",
-                isEdit ? "cursor-pointer active:scale-95" : "cursor-default",
-                v ? "border-white/20 shadow-sm" : "bg-surf/40 border-border/40",
+                "h-full rounded-[2px] lg:rounded-[4px] border transition-all duration-300",
+                isEdit ? "cursor-pointer" : "cursor-default",
+                v ? "border-white/10 shadow-sm" : "bg-surf/40 border-border/20",
               )}
-              style={v ? { backgroundColor: emp.hex } : {}}
+              style={{
+                backgroundColor: v ? (isMe ? "var(--me)" : "var(--accent)") : undefined,
+                opacity: v ? 1 : 0.3,
+              }}
             />
           ))
         )}
       </div>
 
-      <div
-        className={cn(
-          "w-[30px] lg:w-[60px] flex-shrink-0 text-right font-mono font-bold text-[10px] lg:text-lg ml-1.5 lg:ml-4 pl-1.5 lg:pl-4 border-l border-border2/50",
-          shift.off ? "text-txt3" : "",
-        )}
-        style={{ color: !shift.off ? emp.hex : undefined }}
-      >
-        {shift.off ? "—" : `${hours}h`}
+      <div className="w-12 lg:w-28 shrink-0 text-right pl-4">
+        <span
+          className={cn(
+            "text-sm lg:text-2xl font-display font-black tracking-tighter leading-none",
+            shift.off ? "text-txt3 opacity-20" : isMe ? "text-me" : "text-accent",
+          )}
+        >
+          {shift.off ? "—" : `${hours}h`}
+        </span>
       </div>
     </div>
   );
 };
 
-const GanttCell = ({ di, ei, emp, shift }: any) => {
+const GanttCell = ({ di, ei, emp, shift, loggedInEmployeeIdx }: any) => {
+  const isMe = loggedInEmployeeIdx === ei;
   const blocks = useMemo(() => {
     const res = [];
     let cur = null;
@@ -285,7 +294,7 @@ const GanttCell = ({ di, ei, emp, shift }: any) => {
             style={{
               left: `${(b.start / 12) * 100}%`,
               width: `${((b.end - b.start + 1) / 12) * 100}%`,
-              backgroundColor: emp.hex,
+              backgroundColor: isMe ? "var(--me)" : "var(--accent)",
               zIndex: 10,
             }}
             title={`${b.start + 10}h - ${b.end + 12}h`}
@@ -307,7 +316,7 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
 
   const [view, setView] = useState<
-    "dashboard" | "day" | "week" | "gantt" | "chat"
+    "dashboard" | "day" | "week" | "gantt" | "chat" | "settings"
   >("day");
   const [theme, setTheme] = useState<"light" | "dark" | "simple">("light");
   
@@ -321,7 +330,6 @@ export default function App() {
     open: boolean;
     role: AccessRole;
   } | null>(null);
-  const [menuModal, setMenuModal] = useState(false);
   const [empModal, setEmpModal] = useState(false);
   const [qrModal, setQrModal] = useState(false);
   const [pdfOptions, setPdfOptions] = useState({
@@ -660,7 +668,7 @@ export default function App() {
     if (view !== "day") setView("day");
   };
 
-  const ManagerDashboard = () => {
+  const renderManagerDashboard = () => {
     const today = new Date();
     const todayIdx = data.findIndex((_, i) =>
       isSameDay(addDays(monday, i), today),
@@ -670,160 +678,140 @@ export default function App() {
       ? todayData.shifts.filter((s) => !s.off && s.s.some((v) => v)).length
       : 0;
 
+    const containerVariants = {
+      hidden: { opacity: 0 },
+      show: {
+        opacity: 1,
+        transition: { staggerChildren: 0.1 }
+      }
+    };
+
+    const itemVariants = {
+      hidden: { opacity: 0, y: 20 },
+      show: { opacity: 1, y: 0 }
+    };
+
     return (
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex-1 overflow-y-auto no-scrollbar space-y-6 pb-32"
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="flex-1 overflow-y-auto no-scrollbar space-y-8 pb-32"
       >
-        <div className="flex items-center justify-between">
+        <motion.div variants={itemVariants} className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-display font-black tracking-tight text-txt uppercase">
-              Manager Dashboard
+            <h2 className="text-4xl font-display font-black tracking-tighter text-txt uppercase leading-none">
+              Console Manager
             </h2>
-            <p className="text-txt3 text-xs">Aperçu de la gestion d'équipe</p>
+            <p className="text-txt3 text-sm font-medium mt-1">Gérez votre équipe en temps réel</p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest bg-accent py-1 px-2 rounded text-white">
-              Directeur
-            </span>
-          </div>
-        </div>
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            className="flex items-center gap-2 px-4 py-2 bg-accent/10 border border-accent/20 rounded-2xl text-accent"
+          >
+            <Shield size={18} />
+            <span className="text-xs font-black uppercase tracking-widest">Premium Access</span>
+          </motion.div>
+        </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div className="bg-card border border-border p-6 rounded-3xl shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-widest text-txt3 mb-4">
-              Aujourd'hui
-            </p>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
-                <Users size={24} />
+          {[
+            { label: "Aujourd'hui", val: activeStaffCount, sub: "Staff Présent", icon: Users, color: "text-accent", bg: "bg-accent/10" },
+            { label: "Total Planning", val: `${grandTotal}h`, sub: "Heures Semaine", icon: Calendar, color: "text-green", bg: "bg-green/10" },
+            { label: "Repos", val: offDays, sub: "Repos Actifs", icon: Moon, color: "text-amber", bg: "bg-amber/10" }
+          ].map((stat, i) => (
+            <motion.div 
+              key={i}
+              variants={itemVariants}
+              whileHover={{ y: -5 }}
+              className="bg-card border border-border p-8 rounded-[3rem] shadow-sm relative overflow-hidden group transition-all"
+            >
+              <div className={cn("absolute -top-4 -right-4 w-24 h-24 rounded-full blur-3xl opacity-20", stat.bg)} />
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-txt3 mb-6">{stat.label}</p>
+              <div className="flex items-center gap-5">
+                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner", stat.bg, stat.color)}>
+                  <stat.icon size={28} />
+                </div>
+                <div>
+                  <p className="text-3xl font-display font-black text-txt leading-none">{stat.val}</p>
+                  <p className="text-[10px] text-txt3 uppercase font-bold mt-1">{stat.sub}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-display font-black text-txt">
-                  {activeStaffCount}
-                </p>
-                <p className="text-[10px] text-txt3 uppercase font-bold">
-                  Staff Présent
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card border border-border p-6 rounded-3xl shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-widest text-txt3 mb-4">
-              Total Planning
-            </p>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-green/10 flex items-center justify-center text-green">
-                <Calendar size={24} />
-              </div>
-              <div>
-                <p className="text-2xl font-display font-black text-txt">
-                  {grandTotal}h
-                </p>
-                <p className="text-[10px] text-txt3 uppercase font-bold">
-                  Heures Semaine
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card border border-border p-6 rounded-3xl shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-widest text-txt3 mb-4">
-              Alertes
-            </p>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-amber/10 flex items-center justify-center text-amber">
-                <Shield size={24} />
-              </div>
-              <div>
-                <p className="text-2xl font-display font-black text-txt">
-                  {offDays}
-                </p>
-                <p className="text-[10px] text-txt3 uppercase font-bold">
-                  Repos Semaine
-                </p>
-              </div>
-            </div>
-          </div>
+            </motion.div>
+          ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-card border border-border rounded-3xl p-6">
-            <h3 className="font-display font-black text-sm uppercase mb-4 flex items-center gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <motion.div variants={itemVariants} className="bg-card border border-border rounded-[3rem] p-8 shadow-sm">
+            <h3 className="font-display font-black text-xs uppercase mb-8 tracking-[0.2em] flex items-center gap-2 underline decoration-accent/30 decoration-4 underline-offset-4">
               <Clock size={16} className="text-accent" />
-              Qui est là maintenant ?
+              État de présence
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {todayData ? (
                 employees.map((e, ei) => {
                   const sh = todayData.shifts[ei];
-                  if (!sh.off && sh.s.some((v) => v)) {
-                    return (
-                      <div
-                        key={ei}
-                        className="flex items-center justify-between p-3 bg-bg rounded-2xl border border-border2"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-8 h-8 rounded-lg"
-                            style={{ backgroundColor: e.hex }}
-                          />
-                          <span className="font-bold text-sm">{e.name}</span>
+                  const isActive = !sh.off && sh.s.some((v) => v);
+                  return (
+                    <div key={ei} className={cn(
+                      "flex items-center justify-between p-4 rounded-2xl border transition-all",
+                      isActive ? "bg-bg border-border" : "opacity-20 grayscale"
+                    )}>
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-display font-black text-lg shadow-sm" style={{ backgroundColor: ei === employeeIdx ? "var(--me)" : "var(--accent)" }}>
+                          {e.name.slice(0, 1)}
                         </div>
-                        <span className="text-[10px] font-mono font-bold text-txt3">
-                          En poste
-                        </span>
+                        <div>
+                          <p className={cn(
+                            "font-display font-black text-sm uppercase leading-tight",
+                            ei === employeeIdx ? "text-accent" : "text-txt opacity-70"
+                          )}>
+                            {e.name}
+                          </p>
+                          <p className="text-[9px] text-txt3 font-mono font-bold">{isActive ? "En poste" : "Absent"}</p>
+                        </div>
                       </div>
-                    );
-                  }
-                  return null;
+                      {isActive && <div className="w-2.5 h-2.5 rounded-full bg-green animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.5)]" />}
+                    </div>
+                  );
                 })
               ) : (
-                <p className="text-txt3 text-xs italic">
-                  Aucune donnée disponible pour aujourd'hui
-                </p>
+                <div className="text-center py-12 opacity-30">
+                  <Monitor size={48} className="mx-auto mb-4" />
+                  <p className="text-xs font-bold uppercase tracking-widest">Aucune donnée</p>
+                </div>
               )}
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-card border border-border rounded-3xl p-6">
-            <h3 className="font-display font-black text-sm uppercase mb-4 flex items-center gap-2">
+          <motion.div variants={itemVariants} className="bg-card border border-border rounded-[3rem] p-8 shadow-sm">
+            <h3 className="font-display font-black text-xs uppercase mb-8 tracking-[0.2em] flex items-center gap-2 underline decoration-green/30 decoration-4 underline-offset-4">
               <LayoutDashboard size={16} className="text-green" />
-              Actions rapides
+              Contrôle Rapide
             </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setView("day")}
-                className="p-4 bg-bg border border-border rounded-2xl hover:border-accent transition-all text-left"
-              >
-                <p className="font-bold text-xs">Modifier Jour</p>
-                <p className="text-[9px] text-txt3">Planning quotidien</p>
-              </button>
-              <button
-                onClick={() => setView("week")}
-                className="p-4 bg-bg border border-border rounded-2xl hover:border-accent transition-all text-left"
-              >
-                <p className="font-bold text-xs">Vue Semaine</p>
-                <p className="text-[9px] text-txt3">Perspective globale</p>
-              </button>
-              <button
-                onClick={() => setEmpModal(true)}
-                className="p-4 bg-bg border border-border rounded-2xl hover:border-accent transition-all text-left"
-              >
-                <p className="font-bold text-xs">Équipe</p>
-                <p className="text-[9px] text-txt3">Gérer l'équipe</p>
-              </button>
-              <button
-                onClick={() => setQrModal(true)}
-                className="p-4 bg-bg border border-border rounded-2xl hover:border-accent transition-all text-left"
-              >
-                <p className="font-bold text-xs">Partager</p>
-                <p className="text-[9px] text-txt3">Export PDF/QR</p>
-              </button>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { id: "day", t: "Modifier Jour", s: "Focus quotidien", icon: Clock },
+                { id: "week", t: "Vue Semaine", s: "Grille globale", icon: Calendar },
+                { id: "emp", t: "Équipe", s: "Rôles & Staff", icon: Users, modal: true },
+                { id: "qr", t: "Exporter", s: "PDF & QR Code", icon: QrCode, modal: true }
+              ].map((btn, i) => (
+                <button
+                  key={i}
+                  onClick={() => btn.modal ? (btn.id === 'emp' ? setEmpModal(true) : setQrModal(true)) : setView(btn.id as any)}
+                  className="p-6 bg-bg border border-border rounded-[2rem] hover:border-accent hover:shadow-xl hover:shadow-accent/5 transition-all text-left flex flex-col justify-between group h-32 active:scale-95"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center text-txt3 group-hover:text-accent group-hover:border-accent transition-colors">
+                    <btn.icon size={20} />
+                  </div>
+                  <div>
+                    <p className="font-display font-black text-sm uppercase leading-none">{btn.t}</p>
+                    <p className="text-[9px] text-txt3 font-bold mt-1 opacity-60">{btn.s}</p>
+                  </div>
+                </button>
+              ))}
             </div>
-          </div>
+          </motion.div>
         </div>
       </motion.div>
     );
@@ -1027,22 +1015,28 @@ export default function App() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-bg p-4 overflow-hidden relative">
         <div className="noise-texture" />
+        
+        {/* Dynamic background shapes */}
+        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-green/5 rounded-full blur-[120px]" />
+
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md bg-card border border-border rounded-2xl p-8 shadow-xl text-center relative z-10"
+          className="w-full max-w-md bg-card/70 backdrop-blur-xl border border-white/20 rounded-[3rem] p-10 shadow-[0_32px_80px_-20px_rgba(0,0,0,0.15)] text-center relative z-10"
         >
-          <div className="mb-6 relative inline-block">
-            <div className="absolute inset-0 rounded-full border-2 border-accent animate-pulse" />
-            <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center text-accent relative">
-              <Lock size={32} />
+          <div className="mb-8 relative inline-block">
+            <div className="absolute inset-[-10px] rounded-full border border-accent/20 animate-spin-slow" />
+            <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center text-accent relative">
+              <Lock size={36} />
             </div>
           </div>
-          <h1 className="text-2xl font-display font-bold mb-2">
-            Accès Planning
+
+          <h1 className="text-3xl font-display font-black mb-2 uppercase tracking-tight">
+            Planning<br/>Central
           </h1>
-          <p className="text-txt3 text-sm mb-8">
-            Choisissez votre mode d'accès pour continuer.
+          <p className="text-txt3 text-sm mb-10 font-medium">
+            Portail de gestion d'équipe
           </p>
 
           <motion.div
@@ -1052,7 +1046,7 @@ export default function App() {
               show: {
                 opacity: 1,
                 transition: {
-                  staggerChildren: 0.2,
+                  staggerChildren: 0.15,
                 },
               },
             }}
@@ -1061,58 +1055,72 @@ export default function App() {
           >
             <motion.button
               variants={{
-                hidden: { opacity: 0, scale: 0.8 },
-                show: { opacity: 1, scale: 1 },
+                hidden: { opacity: 0, y: 20 },
+                show: { opacity: 1, y: 0 },
               }}
-              whileHover={{ y: -5 }}
+              whileHover={{ y: -8, scale: 1.02 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => handleRoleSelect("manager")}
-              className="flex flex-col items-center gap-3 p-4 border border-border2 rounded-xl hover:border-accent transition-all group"
+              className="flex flex-col items-center gap-4 p-6 bg-surf border border-border rounded-3xl hover:border-accent hover:shadow-[0_10px_30px_-10px_rgba(230,57,70,0.3)] transition-all group"
             >
-              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-colors">
-                <Shield size={20} />
+              <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-all duration-300">
+                <Shield size={24} />
               </div>
-              <span className="font-display font-bold text-sm">Manager</span>
-              <span className="text-[8px] text-txt3 font-bold uppercase tracking-widest -mt-1 opacity-60">
-                Via Google
-              </span>
+              <div className="flex flex-col items-center">
+                <span className="font-display font-black text-sm uppercase">Manager</span>
+                <span className="text-[8px] text-txt3 font-bold uppercase tracking-widest opacity-60">
+                  Accès Total
+                </span>
+              </div>
             </motion.button>
+
             <motion.button
               variants={{
-                hidden: { opacity: 0, scale: 0.8 },
-                show: { opacity: 1, scale: 1 },
+                hidden: { opacity: 0, y: 20 },
+                show: { opacity: 1, y: 0 },
               }}
-              whileHover={{ y: -5 }}
+              whileHover={{ y: -8, scale: 1.02 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => handleRoleSelect("employee")}
-              className="flex flex-col items-center gap-3 p-4 border border-border2 rounded-xl hover:border-green transition-all group"
+              className="flex flex-col items-center gap-4 p-6 bg-surf border border-border rounded-3xl hover:border-green hover:shadow-[0_10px_30px_-10px_rgba(34,197,94,0.3)] transition-all group"
             >
-              <div className="w-10 h-10 rounded-full bg-green/10 flex items-center justify-center text-green group-hover:bg-green group-hover:text-white transition-colors">
-                <User size={20} />
+              <div className="w-12 h-12 rounded-2xl bg-green/10 flex items-center justify-center text-green group-hover:bg-green group-hover:text-white transition-all duration-300">
+                <User size={24} />
               </div>
-              <span className="font-display font-bold text-sm">Employee</span>
+              <div className="flex flex-col items-center">
+                <span className="font-display font-black text-sm uppercase">Employé</span>
+                <span className="text-[8px] text-txt3 font-bold uppercase tracking-widest opacity-60">
+                  Vue Perso
+                </span>
+              </div>
             </motion.button>
           </motion.div>
 
-          <div className="mt-8 flex flex-col items-center gap-3 border-t border-border/40 pt-6">
-            <span className="text-[10px] text-txt3 uppercase tracking-widest font-semibold">
+          {/* Theme Switcher in Splash */}
+          <div className="mt-12 flex flex-col items-center gap-4 border-t border-border/50 pt-8">
+            <span className="text-[10px] text-txt3 uppercase tracking-[0.2em] font-black">
               Thème
             </span>
-            <div className="flex gap-4">
+            <div className="flex gap-6">
               {[
-                { id: "light", icon: Sun },
-                { id: "dark", icon: Moon },
-                { id: "simple", icon: Monitor },
+                { id: "light", icon: Sun, label: "Clair" },
+                { id: "dark", icon: Moon, label: "Sombre" },
               ].map((t) => (
                 <button
                   key={t.id}
                   onClick={() => toggleTheme(t.id as any)}
                   className={cn(
-                    "p-2 rounded-full transition-all hover:scale-110",
-                    theme === t.id ? "text-accent scale-110" : "text-txt3",
+                    "flex flex-col items-center gap-2 transition-all duration-300",
+                    theme === t.id ? "text-accent" : "text-txt3 hover:text-txt"
                   )}
                 >
-                  <t.icon size={18} />
+                  <div className={cn(
+                    "p-3 rounded-2xl border transition-all",
+                    theme === t.id ? "bg-accent/5 border-accent shadow-[0_0_15px_rgba(230,57,70,0.1)]" : "border-transparent bg-transparent"
+                  )}>
+                    <t.icon size={20} />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">{t.label}</span>
                 </button>
               ))}
             </div>
@@ -1183,7 +1191,7 @@ export default function App() {
   }
 
   // Define Personal View for Employees
-  const PersonalView = () => {
+  const renderPersonalView = () => {
     if (employeeIdx === null) return null;
     const emp = employees[employeeIdx];
     const weeklyTotal = data.reduce(
@@ -1215,212 +1223,350 @@ export default function App() {
       }
     }
 
+    const containerVariants = {
+      hidden: { opacity: 0 },
+      show: {
+        opacity: 1,
+        transition: { staggerChildren: 0.1 }
+      }
+    };
+
+    const itemVariants = {
+      hidden: { opacity: 0, y: 20 },
+      show: { opacity: 1, y: 0 }
+    };
+
     return (
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
         className="flex-1 overflow-y-auto no-scrollbar space-y-6 pb-24"
       >
-        <div className="flex items-center justify-between">
+        <motion.div variants={itemVariants} className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-display font-black tracking-tight text-txt uppercase">
+            <h2 className="text-3xl font-display font-black tracking-tighter text-txt uppercase leading-none">
               Mon Espace
             </h2>
-            <p className="text-txt3 text-xs">
-              Bonjour {emp.name}, voici ton planning
+            <p className="text-txt3 text-xs font-medium mt-1">
+              Bonjour <span className="text-accent">{emp.name}</span>, voici ton planning
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-10 h-10 rounded-xl"
-              style={{ backgroundColor: emp.hex }}
-            />
-          </div>
+          <motion.div
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            className="w-12 h-12 lg:w-16 lg:h-16 rounded-[1.25rem] lg:rounded-2xl shadow-xl shadow-accent/20 flex items-center justify-center text-white font-display font-black text-xl lg:text-3xl"
+            style={{ backgroundColor: "var(--accent)" }}
+          >
+            {emp.name.slice(0, 1)}
+          </motion.div>
+        </motion.div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-8">
+          <motion.div variants={itemVariants} className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="absolute -top-4 -right-4 w-24 h-24 bg-accent/5 rounded-full blur-2xl group-hover:bg-accent/10 transition-colors" />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-txt3">Prochain Shift</span>
+            <div className="flex items-center gap-4 mt-3">
+              <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
+                <Clock size={24} />
+              </div>
+              <div>
+                <span className="font-display font-black text-lg lg:text-2xl text-txt uppercase block">{nextShiftInfo}</span>
+                <span className="text-[9px] font-bold text-txt3 uppercase tracking-widest leading-none">Perspective Hebdomadaire</span>
+              </div>
+            </div>
+          </motion.div>
+          <motion.div variants={itemVariants} className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="absolute -top-4 -right-4 w-24 h-24 bg-green/5 rounded-full blur-2xl group-hover:bg-green/10 transition-colors" />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-txt3">Total Semaine</span>
+            <div className="flex items-center gap-4 mt-3">
+              <div className="w-12 h-12 rounded-2xl bg-green/10 flex items-center justify-center text-green">
+                <Calendar size={24} />
+              </div>
+              <div>
+                <span className="font-display font-black text-2xl lg:text-3xl text-txt block">{weeklyTotal}h</span>
+                <span className="text-[9px] font-bold text-txt3 uppercase tracking-widest leading-none">Total validé</span>
+              </div>
+            </div>
+          </motion.div>
         </div>
 
-        {/* Employee Dashboard Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-card border border-border p-5 rounded-[2rem] shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-3 opacity-5">
-              <Clock size={48} />
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-txt3">
-              Prochain Shift
-            </span>
-            <div className="flex items-center gap-3 mt-2">
-              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
-                <Clock size={20} />
-              </div>
-              <span className="font-display font-black text-lg text-txt uppercase">
-                {nextShiftInfo}
-              </span>
-            </div>
-          </div>
-          <div className="bg-card border border-border p-5 rounded-[2rem] shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-3 opacity-5">
-              <Calendar size={48} />
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-txt3">
-              Total Semaine
-            </span>
-            <div className="flex items-center gap-3 mt-2">
-              <div className="w-10 h-10 rounded-xl bg-green/10 flex items-center justify-center text-green">
-                <Calendar size={20} />
-              </div>
-              <span className="font-display font-black text-xl text-txt">
-                {weeklyTotal}h
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Who is here now? (Staff version) */}
-          <div className="bg-card border border-border rounded-[2rem] p-6">
-            <h3 className="font-display font-black text-sm uppercase mb-4 flex items-center gap-2">
-              <Users size={16} className="text-accent" />
-              Mon Équipe Aujourd'hui
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+          <motion.div variants={itemVariants} className="bg-card border border-border rounded-2xl p-8 shadow-sm">
+            <h3 className="font-display font-black text-xs uppercase mb-8 tracking-[0.2em] flex items-center gap-2">
+              <Clock size={16} className="text-accent" />
+              Tes Horaires
             </h3>
-            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 no-scrollbar">
+            <div className="space-y-4">
+              {data.map((d, i) => {
+                const shift = d.shifts[employeeIdx!];
+                const active = !shift.off && shift.s.some(v => v);
+                return (
+                  <div key={i} className={cn(
+                    "flex items-center justify-between p-4 rounded-2xl border transition-all hover:border-accent/30 group",
+                    active ? "bg-bg border-border" : "opacity-30 border-dashed"
+                  )}>
+                    <div className="flex flex-col">
+                      <span className="font-display font-black text-sm uppercase group-hover:text-accent transition-colors">{d.full}</span>
+                      <span className="text-[10px] text-txt3 font-bold">{d.date}</span>
+                    </div>
+                    {active ? (
+                      <div className="text-right">
+                        <span className="text-base font-display font-black text-accent">{shift.s.reduce((a: number,b: number)=>a+b,0)}h</span>
+                        <p className="text-[9px] text-txt3 font-mono font-bold">Début à {shift.s.findIndex(v=>v)+10}h</p>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] font-black uppercase tracking-widest text-txt3">Repos</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="bg-card border border-border rounded-2xl p-8 shadow-sm">
+            <h3 className="font-display font-black text-xs uppercase mb-8 tracking-[0.2em] flex items-center gap-2">
+              <Users size={16} className="text-green" />
+              Sur place aujourd'hui
+            </h3>
+            <div className="space-y-3">
               {todayData ? (
                 employees.map((e, ei) => {
+                  if (ei === employeeIdx) return null;
                   const sh = todayData.shifts[ei];
                   if (!sh.off && sh.s.some((v) => v)) {
                     return (
-                      <div
-                        key={ei}
-                        className="flex items-center justify-between p-3 bg-bg rounded-2xl border border-border2"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-8 h-8 rounded-lg"
-                            style={{ backgroundColor: e.hex }}
-                          />
-                          <span
-                            className={cn(
-                              "font-bold text-sm",
-                              e.name === emp.name && "text-accent",
-                            )}
-                          >
-                            {e.name}
-                          </span>
+                      <div key={ei} className="flex items-center justify-between p-4 bg-bg rounded-2xl border border-border/50 group hover:border-accent/40 transition-all">
+                        <div className="flex items-center gap-4">
+                          <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-display font-black text-lg shadow-sm group-hover:scale-110 transition-transform" style={{ backgroundColor: "var(--accent)" }}>
+                            {e.name.slice(0, 1)}
+                          </div>
+                          <div>
+                            <p className="font-display font-black text-sm uppercase text-txt opacity-70">{e.name}</p>
+                            <p className="text-[9px] text-txt3 font-mono font-bold">Actuellement en poste</p>
+                          </div>
                         </div>
-                        <span className="text-[10px] font-mono font-bold text-txt3">
-                          En poste
-                        </span>
+                        <div className="w-2.5 h-2.5 rounded-full bg-green animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.5)]" />
                       </div>
                     );
                   }
                   return null;
                 })
               ) : (
-                <p className="text-txt3 text-xs italic">
-                  Aucune donnée disponible pour aujourd'hui
-                </p>
+                <div className="text-center py-12 opacity-30">
+                  <Monitor size={48} className="mx-auto mb-4" />
+                  <p className="text-sm font-bold uppercase tracking-widest">Aucune donnée</p>
+                </div>
               )}
             </div>
-          </div>
-
-          {/* Quick Summary of Week (Smaller version) */}
-          <div className="bg-card border border-border rounded-[2rem] p-6">
-            <h3 className="font-display font-black text-sm uppercase mb-4 flex items-center gap-2">
-              <Calendar size={16} className="text-green" />
-              Cette Semaine
-            </h3>
-            <div className="grid grid-cols-7 gap-1">
-              {data.map((d, di) => {
-                const sh = d.shifts[employeeIdx];
-                const h = sh.s.reduce((a, b) => a + (b || 0), 0);
-                return (
-                  <div key={di} className="flex flex-col items-center gap-2">
-                    <span className="text-[8px] font-bold text-txt3 uppercase">
-                      {d.id}
-                    </span>
-                    <div
-                      className={cn(
-                        "w-full h-12 rounded-lg border flex items-center justify-center transition-all",
-                        sh.off
-                          ? "bg-bg/20 border-border/30"
-                          : h > 0
-                            ? "bg-accent/5 border-accent/20"
-                            : "bg-card border-border/10",
-                      )}
-                    >
-                      {sh.off ? (
-                        <span className="text-[6px] font-black text-txt3 opacity-20">
-                          OFF
-                        </span>
-                      ) : (
-                        <span
-                          className={cn(
-                            "text-xs font-mono font-black",
-                            h > 0 ? "text-accent" : "text-txt3",
-                          )}
-                        >
-                          {h || "-"}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-6">
-              <button
-                onClick={() => setShowTeamWeekPopup(true)}
-                className="w-full bg-accent/10 border border-accent/20 text-accent py-3 rounded-2xl font-display font-black text-[10px] hover:bg-accent/20 transition-all flex items-center justify-center gap-2"
-              >
-                <Calendar size={14} />
-                PLANNING COMPLET ÉQUIPE
-              </button>
-            </div>
-          </div>
+          </motion.div>
         </div>
-
-        <div className="flex gap-4">
+        
+        <motion.div variants={itemVariants} className="flex gap-4">
+          <button
+            onClick={() => setShowTeamWeekPopup(true)}
+            className="flex-1 bg-accent/10 border border-accent/20 text-accent py-4 rounded-xl font-display font-black text-[10px] uppercase tracking-widest hover:bg-accent/20 transition-all flex items-center justify-center gap-2"
+          >
+            <Calendar size={14} />
+            Planning Complet Équipe
+          </button>
           <button
             onClick={logout}
-            className="flex-1 bg-card border border-border py-4 rounded-2xl font-display font-black text-xs text-red hover:bg-red hover:text-white transition-all shadow-sm"
+            className="flex-1 bg-card border border-border py-4 rounded-xl font-display font-black text-[10px] uppercase tracking-widest text-red hover:bg-red hover:text-white transition-all shadow-sm"
           >
             DÉCONNEXION
           </button>
-        </div>
+        </motion.div>
       </motion.div>
     );
   };
 
-  const BottomNav = () => (
-    <motion.nav
-      initial={{ y: 100 }}
-      animate={{ y: 0 }}
-      className="fixed bottom-4 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[400px] bg-surf/80 backdrop-blur-xl border border-border rounded-2xl shadow-2xl flex justify-around p-1.5 sm:p-2 z-[70]"
+
+  const renderSettingsView = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="flex-1 overflow-y-auto no-scrollbar space-y-8 pb-32"
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-4xl font-display font-black tracking-tighter text-txt uppercase leading-none">
+            Paramètres
+          </h2>
+          <p className="text-txt3 text-sm font-medium mt-1">Personnalisez votre expérience</p>
+        </div>
+      </div>
+
+      <div className="space-y-8">
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={{
+            show: { transition: { staggerChildren: 0.1 } },
+          }}
+          className="space-y-8"
+        >
+          {/* Actions Rapides */}
+          <motion.section variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-4">
+            <h3 className="text-xs text-txt3 uppercase font-black tracking-widest px-1">Actions Rapides</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <button className="flex items-center gap-4 bg-card border border-border p-5 rounded-2xl hover:border-accent hover:bg-accent/5 transition-all group text-left">
+                <div className="w-12 h-12 rounded-xl bg-card border border-border flex items-center justify-center text-txt3 group-hover:text-accent group-hover:border-accent transition-colors shadow-sm">
+                  <RefreshCw size={24} />
+                </div>
+                <div>
+                  <p className="font-display font-bold text-sm">Changement de ligne</p>
+                  <p className="text-[10px] text-txt3 font-bold uppercase tracking-widest opacity-60">Synchronisation</p>
+                </div>
+              </button>
+              <button
+                onClick={() => { setPinModal({ open: true, role: "employee" }); }}
+                className="flex items-center gap-4 bg-card border border-border p-5 rounded-xl hover:border-accent hover:bg-accent/5 transition-all group text-left"
+              >
+                <div className="w-12 h-12 rounded-xl bg-card border border-border flex items-center justify-center text-txt3 group-hover:text-accent group-hover:border-accent transition-colors shadow-sm">
+                  <UserCircle size={24} />
+                </div>
+                <div>
+                  <p className="font-display font-bold text-sm">Changer de Profil</p>
+                  <p className="text-[10px] text-txt3 font-bold uppercase tracking-widest opacity-60">Session Employé</p>
+                </div>
+              </button>
+              {isEdit && (
+                <>
+                  <button
+                    onClick={() => { setEmpModal(true); }}
+                    className="flex items-center gap-4 bg-card border border-border p-5 rounded-xl hover:border-accent hover:bg-accent/5 transition-all group text-left"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-card border border-border flex items-center justify-center text-txt3 group-hover:text-accent group-hover:border-accent transition-colors shadow-sm">
+                      <Users size={24} />
+                    </div>
+                    <div>
+                      <p className="font-display font-bold text-sm">Gérer l'Équipe</p>
+                      <p className="text-[10px] text-txt3 font-bold uppercase tracking-widest opacity-60">Rôles & Staff</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => { copyPrevWeek(); }}
+                    className="flex items-center gap-4 bg-card border border-border p-5 rounded-xl hover:border-accent hover:bg-accent/5 transition-all group text-left"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-card border border-border flex items-center justify-center text-txt3 group-hover:text-accent group-hover:border-accent transition-colors shadow-sm">
+                      <Copy size={24} />
+                    </div>
+                    <div>
+                      <p className="font-display font-bold text-sm">Initialiser Semaine</p>
+                      <p className="text-[10px] text-txt3 font-bold uppercase tracking-widest opacity-60">Depuis Semaine -1</p>
+                    </div>
+                  </button>
+                </>
+              )}
+            </div>
+          </motion.section>
+
+          {/* Apparence */}
+          <motion.section variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-4">
+            <h3 className="text-xs text-txt3 uppercase font-black tracking-widest px-1 flex items-center gap-2"><Monitor size={14}/> Apparence</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {["light", "dark", "simple"].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => toggleTheme(t as any)}
+                  className={cn(
+                    "py-5 rounded-xl border font-display font-black text-xs transition-all uppercase tracking-widest",
+                    theme === t ? "bg-accent border-accent text-white shadow-lg shadow-accent/20" : "bg-card border-border text-txt2 hover:border-txt3"
+                  )}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </motion.section>
+
+          {/* Export & Partage */}
+          <motion.section variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-4">
+            <h3 className="text-xs text-txt3 uppercase font-black tracking-widest px-1 flex items-center gap-2"><FileText size={14}/> Export & Partage</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button onClick={() => { setQrModal(true); }} className="flex items-center gap-4 bg-card border border-border p-5 rounded-xl hover:bg-bg transition-all hover:border-accent group">
+                <div className="w-12 h-12 rounded-xl bg-accent/10 text-accent flex items-center justify-center group-hover:bg-accent group-hover:text-white transition-all"><QrCode size={24} /></div>
+                <div className="text-left"><p className="font-display font-bold text-sm">Partager & Sync</p><p className="text-[10px] text-txt3 font-bold uppercase tracking-widest opacity-60">QR Code</p></div>
+              </button>
+              <button onClick={() => { setQrModal(true); }} className="flex items-center gap-4 bg-card border border-border p-5 rounded-xl hover:bg-bg transition-all hover:border-blue-500 group">
+                <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-all"><FileText size={24} /></div>
+                <div className="text-left"><p className="font-display font-bold text-sm">Export PDF</p><p className="text-[10px] text-txt3 font-bold uppercase tracking-widest opacity-60">Téléchargement</p></div>
+              </button>
+            </div>
+          </motion.section>
+
+          {/* Sécurité Manager */}
+          {isEdit && (
+            <motion.section variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-4 pt-8 border-t border-border">
+              <h3 className="text-xs text-txt3 uppercase font-black tracking-widest px-1 flex items-center gap-2"><Lock size={14}/> Sécurité & Danger Zone</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] text-txt3 font-black uppercase tracking-widest px-1">PIN Manager</label>
+                  <input type="password" value={managerPinInput} onChange={(e) => updatePin("manager", e.target.value)} placeholder="••••" className="w-full bg-card border border-border rounded-xl px-5 py-4 text-sm font-mono outline-none focus:border-accent shadow-sm" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] text-txt3 font-black uppercase tracking-widest px-1">PIN Employé</label>
+                  <input type="password" value={employeePinInput} onChange={(e) => updatePin("employee", e.target.value)} placeholder="••••" className="w-full bg-card border border-border rounded-xl px-5 py-4 text-sm font-mono outline-none focus:border-green shadow-sm" />
+                </div>
+              </div>
+              <button onClick={resetAll} className="flex items-center justify-center gap-3 w-full bg-red-l border border-red/20 py-5 rounded-xl font-display font-black text-sm uppercase tracking-widest text-red hover:bg-red hover:text-white transition-all shadow-sm">
+                <Trash2 size={20} />
+                Réinitialiser l'application
+              </button>
+            </motion.section>
+          )}
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+
+  const renderBottomNav = () => (
+    <nav
+      className="fixed bottom-6 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[480px] bg-surf/70 backdrop-blur-2xl border border-border/50 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] flex justify-around px-2 pt-1 pb-0.5 lg:pt-1.5 lg:pb-0.5 z-[70]"
     >
       {[
         { id: "dashboard", label: "Home", icon: LayoutDashboard },
-        { id: "day", label: "Jour", icon: Clock },
-        { id: "week", label: "Semaine", icon: Calendar },
-        { id: "chat", label: "Chat", icon: MessageCircle, hasBadge: hasUnreadChat },
-        { id: "menu", label: "Menu", icon: MoreVertical },
-      ].map((item: any) => (
-        <button
-          key={item.id}
-          onClick={() => {
-            if (item.id === "menu") setMenuModal(true);
-            else setView(item.id as any);
-          }}
-          className={cn(
-            "flex flex-col items-center gap-1 p-3 rounded-xl transition-all duration-300 flex-shrink-0 relative active:scale-90",
-            view === item.id ? "text-accent bg-accent/10" : "text-txt3 hover:text-accent hover:bg-accent/5",
-          )}
-        >
-          <item.icon size={22} />
-          <span className="text-[10px] font-bold uppercase">{item.label}</span>
-          {item.hasBadge && (
-            <span className="absolute top-2 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-surf" />
-          )}
-        </button>
-      ))}
-    </motion.nav>
+        { id: "day", label: "Day", icon: Clock },
+        { id: "week", label: "Week", icon: Calendar },
+        {id: "chat", label: "Staff", icon: MessageCircle, hasBadge: hasUnreadChat},
+        {id: "settings", label: "Settings", icon: Settings},
+      ].map((item: any) => {
+        const isActive = view === item.id;
+        return (
+          <button
+            key={item.id}
+            onClick={() => {
+              setView(item.id as any);
+            }}
+            className={cn(
+              "flex flex-col items-center gap-1.5 px-2 py-1.5 rounded-lg transition-all duration-500 relative group active:scale-90",
+              isActive 
+                ? "text-accent" 
+                : "text-txt3 hover:text-accent"
+            )}
+          >
+            {isActive && (
+              <motion.div
+                layoutId="nav-glow"
+                className="absolute inset-0 bg-accent/10 rounded-lg -z-10"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+            <item.icon size={isActive ? 24 : 22} className={cn("transition-transform duration-300", isActive ? "scale-110" : "group-hover:scale-110")} />
+            <span className={cn(
+              "text-[9px] font-black uppercase tracking-[0.1em] transition-all duration-300",
+              isActive ? "opacity-100 translate-y-0" : "opacity-40"
+            )}>
+              {item.label}
+            </span>
+            {item.hasBadge && (
+              <span className="absolute top-3 right-4 w-2 h-2 bg-red rounded-full border-2 border-surf animate-pulse" />
+            )}
+          </button>
+        );
+      })}
+    </nav>
   );
 
   return (
@@ -1428,185 +1574,86 @@ export default function App() {
       <div className="noise-texture" />
 
       {/* --- Header --- */}
-      <header className="flex-shrink-0 bg-surf border-b border-border px-4 lg:px-8">
-        <div className="h-12 lg:h-16 flex items-center justify-between gap-4 max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 lg:gap-4 truncate">
+      <header className="flex-shrink-0 bg-surf/80 backdrop-blur-xl border-b border-border sticky top-0 z-[60]">
+        <div className="h-14 lg:h-20 flex items-center justify-between gap-4 max-w-7xl mx-auto px-4 lg:px-8">
+          <div className="flex items-center gap-4 lg:gap-6">
             <div className="flex-shrink-0">
               <img
-                src="https://upload.wikimedia.org/wikipedia/commons/e/e6/Lee_cooper_logo.png"
+                src="https://upload.wikimedia.org/wikipedia/commons/archive/e/e6/20161208013146%21Lee_cooper_logo.svg"
                 alt="Lee Cooper"
-                className="h-6 lg:h-8 w-auto invert dark:invert-0"
+                className="h-10 lg:h-16 w-auto"
               />
             </div>
-            <div className="hidden sm:block border-l border-border h-6 mx-1 lg:mx-2" />
-            <div className="truncate">
-              <h1 className="font-display font-bold text-sm lg:text-base leading-none truncate" aria-level="1">
+            <div>
+              <h1 className="font-display font-black text-xs lg:text-3xl lg:tracking-tighter uppercase leading-none">
                 LCK TARGA
               </h1>
-              <p className="text-[10px] lg:text-xs text-txt3 font-mono mt-1">
+              <p className="text-[8px] lg:text-xs text-txt3 font-bold uppercase tracking-widest mt-0.5 opacity-60">
                 Planning Hebdomadaire
               </p>
             </div>
           </div>
 
-          {/* Quick Emp Summary (Manager Only) */}
-          {isEdit && (
-            <div className="hidden lg:flex items-center gap-2 overflow-x-auto no-scrollbar max-w-sm">
-              {employees.map((e, i) => {
-                const hours = data.reduce((acc, d) => {
-                  const sh = d.shifts[i];
-                  return acc + (sh.off ? 0 : sh.s.reduce((a, b) => a + b, 0));
-                }, 0);
-                return (
-                  <div
-                    key={e.name}
-                    className="flex items-center gap-1.5 px-2 py-1 bg-card2 border border-border rounded-lg text-[10px] font-mono whitespace-nowrap"
-                  >
-                    <div
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: e.hex }}
-                    />
-                    <span className="font-bold">{e.name.slice(0, 2)}</span>
-                    <span className="text-accent">{hours}h</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 lg:gap-3 ml-auto">
+          <div className="flex items-center gap-2 lg:gap-4 ml-auto">
             <AnimatePresence>
               {showSavedBadge && (
                 <motion.div
-                  initial={{ opacity: 0, x: 10 }}
+                  initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="hidden md:flex items-center gap-1.5 text-green font-mono text-[10px] lg:text-xs font-bold"
+                  exit={{ opacity: 0, x: 20 }}
+                  className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-green/10 border border-green/20 rounded-full text-green text-[10px] font-bold uppercase tracking-widest"
                 >
                   <CheckCircle2 size={12} />
                   <span>Sauvegardé</span>
-                  {/* Stats Bar */}
-                  <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-6">
-                    {[
-                      {
-                        label: "Total Semaine",
-                        value: `${grandTotal}h`,
-                        sub: "Heures planifiées",
-                        icon: Calendar,
-                        color: "text-accent",
-                      },
-                      {
-                        label: "Moyenne / Jour",
-                        value: `${avgPerDay}h`,
-                        sub: "Par journée",
-                        icon: Clock,
-                        color: "text-txt",
-                      },
-                      {
-                        label: "Effectif",
-                        value: employees.length,
-                        sub: "Agents actifs",
-                        icon: Users,
-                        color: "text-txt",
-                      },
-                      {
-                        label: "Jours Repos",
-                        value: offDays,
-                        sub: "Temps libre",
-                        icon: Moon,
-                        color: "text-txt",
-                      },
-                    ].map((stat, i) => (
-                      <div
-                        key={i}
-                        className="bg-card border border-border px-5 py-4 lg:py-6 rounded-2xl shadow-sm relative overflow-hidden group transition-all duration-300 hover:border-accent/40"
-                      >
-                        <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-                          <stat.icon size={48} />
-                        </div>
-                        <p className="text-[10px] font-sans font-bold text-txt3 uppercase tracking-[0.1em] mb-1.5">
-                          {stat.label}
-                        </p>
-                        <div className="flex items-baseline gap-1">
-                          <span
-                            className={cn(
-                              "text-2xl lg:text-3xl font-bold tracking-tighter",
-                              stat.color,
-                            )}
-                          >
-                            {stat.value}
-                          </span>
-                        </div>
-                        <p className="text-[9px] text-txt3 font-mono mt-2 flex items-center gap-1.5">
-                          <span className="w-1 h-1 rounded-full bg-accent animate-pulse" />
-                          {stat.sub}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
             <button
-              onClick={() =>
-                isEdit ? setIsEdit(false) : handleRoleSelect("manager")
-              }
+              onClick={() => isEdit ? setIsEdit(false) : handleRoleSelect("manager")}
               className={cn(
-                "flex items-center gap-1.5 px-2 py-1 lg:px-3 lg:py-1.5 rounded-full text-[9px] lg:text-xs font-display font-bold border transition-all",
-                isEdit
-                  ? "bg-green-l border-green text-green"
-                  : "bg-amber-l border-amber text-amber",
+                "hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase border transition-all active:scale-95",
+                isEdit 
+                  ? "bg-green text-white border-green shadow-[0_8px_20px_-4px_rgba(34,197,94,0.4)]" 
+                  : "bg-amber text-white border-amber shadow-[0_8px_20px_-4px_rgba(245,158,11,0.4)]"
               )}
             >
-              <div
-                className={cn(
-                  "w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full",
-                  isEdit ? "bg-green" : "bg-amber",
-                )}
-              />
-              <span>{isEdit ? "Édition" : "Consultation"}</span>
+              <div className={cn("w-1.5 h-1.5 rounded-full bg-white", isEdit ? "animate-pulse" : "")} />
+              {isEdit ? "Mode Édition" : "Mode Consultation"}
             </button>
 
-            <div className="hidden lg:flex items-center gap-1 ml-2">
+            <div className="flex items-center bg-card2/50 border border-border p-1 rounded-xl">
               <button
                 disabled={!isEdit || undoStack.length === 0}
                 onClick={handleUndo}
-                className="p-2 border border-border bg-card2 rounded-lg text-txt3 hover:text-txt disabled:opacity-30 transition-all"
+                className="p-2 text-txt3 hover:text-accent disabled:opacity-20 transition-all active:scale-90"
               >
-                <Undo size={16} />
+                <Undo size={18} />
               </button>
               <button
                 disabled={!isEdit || redoStack.length === 0}
                 onClick={handleRedo}
-                className="p-2 border border-border bg-card2 rounded-lg text-txt3 hover:text-txt disabled:opacity-30 transition-all"
+                className="p-2 text-txt3 hover:text-accent disabled:opacity-20 transition-all active:scale-90"
               >
-                <Redo size={16} />
+                <Redo size={18} />
               </button>
             </div>
 
             <button
-              onClick={() => setQrModal(true)}
-              className="p-2 border border-border bg-card2 rounded-lg text-txt3 hover:text-txt transition-all ml-1"
-            >
-              <QrCode size={16} />
-            </button>
-
-            <button
               onClick={logout}
-              className="p-2 border border-border bg-card2 rounded-lg text-red hover:bg-red-l transition-all"
+              className="p-2 lg:p-3 border border-border bg-card hover:bg-red-l rounded-xl text-red transition-all group active:scale-95"
             >
-              <LogOut size={16} />
+              <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
             </button>
           </div>
         </div>
       </header>
 
-      <BottomNav />
+      {renderBottomNav()}
 
       {/* --- Main Content --- */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 lg:p-8 flex flex-col min-h-0 space-y-4 lg:space-y-8 pb-32 lg:pb-12 relative z-0">
-        {view !== "chat" && (
+        {view !== "chat" && view !== "settings" && (
           <div
             className={cn(
               "flex-shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-6",
@@ -1645,7 +1692,7 @@ export default function App() {
           ].map((stat, i) => (
             <div
               key={i}
-              className="bg-card border border-border px-5 py-4 lg:py-6 rounded-2xl shadow-sm relative overflow-hidden group transition-all duration-300 hover:border-accent/40"
+              className="bg-card border border-border px-5 py-4 lg:py-6 rounded-xl shadow-sm relative overflow-hidden group transition-all duration-300 hover:border-accent/40"
             >
               <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
                 <stat.icon size={48} />
@@ -1673,7 +1720,7 @@ export default function App() {
         )}
 
         {/* Week Selection & View Controls */}
-        {view !== "chat" && (
+        {view !== "chat" && view !== "settings" && (
           <>
             <div className="flex-shrink-0 flex flex-col sm:flex-row items-center gap-3 lg:gap-4 bg-card border border-border p-2 lg:p-4 rounded-2xl shadow-sm">
           <div className="flex items-center gap-1.5 w-full sm:w-auto">
@@ -1781,9 +1828,9 @@ export default function App() {
 
         {/* --- Area Specific Content --- */}
         <AnimatePresence mode="wait">
-          {view === "dashboard" && role === "manager" && <ManagerDashboard />}
+          {view === "dashboard" && role === "manager" && renderManagerDashboard()}
 
-          {view === "dashboard" && role === "employee" && <PersonalView />}
+          {view === "dashboard" && role === "employee" && renderPersonalView()}
 
           {view === "day" && (
             <motion.div
@@ -1850,7 +1897,7 @@ export default function App() {
                         <div className="w-[65px] lg:w-[150px] shrink-0 text-[8px] lg:text-xs font-display font-black text-txt3 tracking-[0.1em] uppercase mr-1.5 lg:mr-4">
                           Équipe
                         </div>
-                        <div className="flex-1 grid grid-cols-12 gap-0.5 lg:gap-1">
+                        <div className="flex-1 grid grid-cols-12 gap-1 lg:gap-2">
                           {Array.from({ length: 12 }).map((_, i) => {
                             const hour = i + 10;
                             const isNow = new Date().getHours() === hour;
@@ -1898,6 +1945,7 @@ export default function App() {
                             toggleDayOff={toggleDayOff}
                             toggleSlot={toggleSlot}
                             shift={data[activeDay].shifts[ei]}
+                            loggedInEmployeeIdx={employeeIdx}
                           />
                         ))}
                       </div>
@@ -1987,12 +2035,12 @@ export default function App() {
                               >
                                 <div
                                   className={cn(
-                                    "w-8 lg:w-12 shrink-0 flex items-center justify-center font-display font-bold text-xs",
+                                    "w-8 lg:w-12 shrink-0 flex items-center justify-center font-display font-black text-xs transition-colors",
                                     isEdit
                                       ? "cursor-pointer hover:opacity-75"
                                       : "",
+                                    ei === employeeIdx ? "text-me" : "text-txt3"
                                   )}
-                                  style={{ color: emp.hex }}
                                   onClick={() => isEdit && toggleDayOff(di, ei)}
                                 >
                                   {emp.name.slice(0, 2).toUpperCase()}
@@ -2011,7 +2059,7 @@ export default function App() {
                                       }
                                     >
                                       <span className="text-[9px] font-mono tracking-[0.2em] text-txt3 opacity-40 uppercase font-bold">
-                                        DAY OFF
+                                        Repos
                                       </span>
                                     </div>
                                   ) : (
@@ -2030,7 +2078,7 @@ export default function App() {
                                           )}
                                           style={{
                                             backgroundColor: v
-                                              ? emp.hex
+                                              ? (ei === employeeIdx ? "var(--me)" : "var(--accent)")
                                               : "var(--border2)",
                                             opacity: v ? 0.9 : 0.3,
                                           }}
@@ -2040,10 +2088,10 @@ export default function App() {
                                   )}
                                 </div>
                                 <div
-                                  className="w-8 lg:w-10 shrink-0 text-right pr-1 font-mono font-bold text-xs opacity-90"
-                                  style={{
-                                    color: shift.off ? "var(--txt3)" : emp.hex,
-                                  }}
+                                  className={cn(
+                                    "w-10 lg:w-12 shrink-0 text-right pr-1 font-display font-black text-[10px] lg:text-xs transition-colors",
+                                    shift.off ? "text-txt3 opacity-40" : ei === employeeIdx ? "text-me font-black" : "text-txt opacity-70"
+                                  )}
                                 >
                                   {shift.off ? "—" : `${hours}h`}
                                 </div>
@@ -2069,13 +2117,16 @@ export default function App() {
 
               {/* Legend */}
               <div className="my-8 flex flex-wrap items-center gap-6 p-6 bg-card2/50 rounded-2xl border border-dashed border-border">
-                {employees.map((e) => (
+                {employees.map((e, ei) => (
                   <div key={e.name} className="flex items-center gap-2">
                     <div
                       className="w-3 h-3 rounded-full shadow-sm"
-                      style={{ backgroundColor: e.hex }}
+                      style={{ backgroundColor: ei === employeeIdx ? "var(--me)" : "var(--accent)" }}
                     />
-                    <span className="text-[10px] font-display font-bold uppercase tracking-widest text-txt2">
+                    <span className={cn(
+                      "text-[10px] font-display font-black uppercase tracking-widest transition-colors",
+                      ei === employeeIdx ? "text-me" : "text-txt2 opacity-70"
+                    )}>
                       {e.name}
                     </span>
                   </div>
@@ -2103,7 +2154,7 @@ export default function App() {
               </div>
 
               {grandTotal === 0 && isEdit && (
-                <div className="mt-8 p-12 flex flex-col items-center justify-center text-center space-y-4 bg-bg/20 border-2 border-dashed border-border rounded-3xl">
+                <div className="mt-8 p-12 flex flex-col items-center justify-center text-center space-y-4 bg-bg/20 border-2 border-dashed border-border rounded-2xl">
                   <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center text-accent">
                     <Copy size={32} />
                   </div>
@@ -2143,6 +2194,8 @@ export default function App() {
               />
             </motion.div>
           )}
+
+          {view === "settings" && renderSettingsView()}
         </AnimatePresence>
       </main>
 
@@ -2183,12 +2236,15 @@ export default function App() {
                     >
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-display font-black text-[10px]"
-                        style={{ backgroundColor: emp.hex }}
+                        style={{ backgroundColor: ei === employeeIdx ? "var(--me)" : "var(--accent)" }}
                       >
                         {emp.name.slice(0, 2)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-display font-bold text-xs truncate">
+                        <p className={cn(
+                          "font-display font-black text-xs truncate uppercase tracking-tight",
+                          ei === employeeIdx ? "text-me" : "text-txt opacity-70"
+                        )}>
                           {emp.name}
                         </p>
                         <div className="flex items-center gap-1 mt-1">
@@ -2204,7 +2260,7 @@ export default function App() {
                                   className="flex-1 rounded-sm"
                                   style={{
                                     backgroundColor: v
-                                      ? emp.hex
+                                      ? (ei === employeeIdx ? "var(--me)" : "var(--accent)")
                                       : "rgba(0,0,0,0.05)",
                                   }}
                                 />
@@ -2275,11 +2331,14 @@ export default function App() {
                             <div className="flex items-center gap-2">
                               <div
                                 className="w-6 h-6 rounded-lg flex items-center justify-center text-white font-display font-black text-[8px]"
-                                style={{ backgroundColor: emp.hex }}
+                                style={{ backgroundColor: ei === employeeIdx ? "var(--me)" : "var(--accent)" }}
                               >
                                 {emp.name.slice(0, 2)}
                               </div>
-                              <span className="font-display font-bold text-[10px] truncate max-w-[80px]">
+                              <span className={cn(
+                                "font-display font-black text-[10px] truncate max-w-[80px] transition-colors",
+                                ei === employeeIdx ? "text-me" : "text-txt opacity-70"
+                              )}>
                                 {emp.name.split(" ")[0]}
                               </span>
                             </div>
@@ -2365,9 +2424,12 @@ export default function App() {
                 >
                   <div
                     className="w-8 h-8 rounded-lg flex-shrink-0"
-                    style={{ backgroundColor: emp.hex }}
+                    style={{ backgroundColor: i === employeeIdx ? "var(--me)" : "var(--accent)" }}
                   />
-                  <span className="font-display font-bold flex-1">
+                  <span className={cn(
+                    "font-display font-black flex-1 uppercase tracking-tight",
+                    i === employeeIdx ? "text-me" : "text-txt opacity-70"
+                  )}>
                     {emp.name}
                   </span>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -2425,131 +2487,6 @@ export default function App() {
                 </button>
               </div>
             </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* --- Unified Menu Modal --- */}
-      {menuModal && (
-        <Modal title="Menu Central" onClose={() => setMenuModal(false)}>
-          <div className="p-4 space-y-6 max-h-[80vh] overflow-y-auto no-scrollbar">
-            <motion.div
-              initial="hidden"
-              animate="show"
-              variants={{
-                show: { transition: { staggerChildren: 0.1 } },
-              }}
-              className="space-y-6"
-            >
-              {/* Actions Rapides */}
-              <motion.section variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-3">
-                <h3 className="text-[10px] text-txt3 uppercase font-black tracking-widest px-2">Actions Rapides</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <button className="flex flex-col items-center justify-center gap-2 bg-card border border-border py-4 rounded-2xl hover:border-accent hover:bg-accent/5 transition-all group">
-                    <RefreshCw size={24} className="text-txt3 group-hover:text-accent transition-colors" />
-                    <span className="font-display font-bold text-xs text-center">Changement<br/>de ligne</span>
-                  </button>
-                  <button
-                    onClick={() => { setMenuModal(false); setPinModal({ open: true, role: "employee" }); }}
-                    className="flex flex-col items-center justify-center gap-2 bg-card border border-border py-4 rounded-2xl hover:border-accent hover:bg-accent/5 transition-all group"
-                  >
-                    <UserCircle size={24} className="text-txt3 group-hover:text-accent transition-colors" />
-                    <span className="font-display font-bold text-xs text-center">Changer<br/>de Profil</span>
-                  </button>
-                  {isEdit && (
-                    <>
-                      <button
-                        onClick={() => { setMenuModal(false); setEmpModal(true); }}
-                        className="flex flex-col items-center justify-center gap-2 bg-card border border-border py-4 rounded-2xl hover:border-accent hover:bg-accent/5 transition-all group"
-                      >
-                        <Users size={24} className="text-txt3 group-hover:text-accent transition-colors" />
-                        <span className="font-display font-bold text-xs text-center">Gérer<br/>l'Équipe</span>
-                      </button>
-                      <button
-                        onClick={() => { setMenuModal(false); copyPrevWeek(); }}
-                        className="flex flex-col items-center justify-center gap-2 bg-card border border-border py-4 rounded-2xl hover:border-accent hover:bg-accent/5 transition-all group"
-                      >
-                        <Copy size={24} className="text-txt3 group-hover:text-accent transition-colors" />
-                        <span className="font-display font-bold text-xs text-center">Initialiser<br/>Semaine</span>
-                      </button>
-                      <button
-                        onClick={() => { setMenuModal(false); handleUndo(); }}
-                        disabled={undoStack.length === 0}
-                        className="flex flex-col items-center justify-center gap-2 bg-card border border-border py-4 rounded-2xl hover:border-accent hover:bg-accent/5 transition-all group disabled:opacity-50 disabled:pointer-events-none"
-                      >
-                        <RotateCcw size={24} className="text-txt3 group-hover:text-accent transition-colors" />
-                        <span className="font-display font-bold text-xs text-center">Annuler<br/>(Undo)</span>
-                      </button>
-                    </>
-                  )}
-                </div>
-              </motion.section>
-
-              {/* Apparence */}
-              <motion.section variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-3">
-                <h3 className="text-[10px] text-txt3 uppercase font-black tracking-widest px-2 flex items-center gap-2"><Monitor size={12}/> Apparence</h3>
-                <div className="flex gap-2">
-                  {["light", "dark", "simple"].map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => toggleTheme(t as any)}
-                      className={cn(
-                        "flex-1 py-3 rounded-xl border font-display font-bold text-xs transition-all capitalize",
-                        theme === t ? "bg-accent border-accent text-white" : "bg-bg border-border text-txt2 hover:border-txt3"
-                      )}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </motion.section>
-
-              {/* Export & Partage */}
-              <motion.section variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-3">
-                <h3 className="text-[10px] text-txt3 uppercase font-black tracking-widest px-2 flex items-center gap-2"><FileText size={12}/> Export & Partage</h3>
-                <div className="space-y-2">
-                  <button onClick={() => { setMenuModal(false); setQrModal(true); }} className="w-full flex items-center gap-3 bg-card border border-border p-3 rounded-xl hover:bg-bg transition-colors">
-                    <div className="w-8 h-8 rounded-lg bg-accent/10 text-accent flex items-center justify-center"><QrCode size={16} /></div>
-                    <div className="text-left"><p className="font-display font-bold text-sm">Partager & Sync</p><p className="text-[10px] text-txt3">Scanner le QR Code pour synchroniser</p></div>
-                  </button>
-                  <button onClick={() => { setMenuModal(false); setQrModal(true); }} className="w-full flex items-center gap-3 bg-card border border-border p-3 rounded-xl hover:bg-bg transition-colors">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center"><FileText size={16} /></div>
-                    <div className="text-left"><p className="font-display font-bold text-sm">Export PDF</p><p className="text-[10px] text-txt3">Télécharger le planning en PDF</p></div>
-                  </button>
-                  <button className="w-full flex items-center gap-3 bg-card border border-border p-3 rounded-xl hover:bg-bg transition-colors">
-                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center"><ImageIcon size={16} /></div>
-                    <div className="text-left"><p className="font-display font-bold text-sm">Export Image</p><p className="text-[10px] text-txt3">Sauvegarder en tant qu'image</p></div>
-                  </button>
-                  {isEdit && (
-                    <button className="w-full flex items-center gap-3 bg-card border border-border p-3 rounded-xl hover:bg-bg transition-colors">
-                      <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center"><FileJson size={16} /></div>
-                      <div className="text-left"><p className="font-display font-bold text-sm">Exporte JSON</p><p className="text-[10px] text-txt3">Sauvegarde complète des données</p></div>
-                    </button>
-                  )}
-                </div>
-              </motion.section>
-
-              {/* Sécurité Manager */}
-              {isEdit && (
-                <motion.section variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-3 pt-4 border-t border-border">
-                  <h3 className="text-[10px] text-txt3 uppercase font-black tracking-widest px-2 flex items-center gap-2"><Lock size={12}/> Sécurité</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] text-txt3 font-bold px-1">PIN Manager</label>
-                      <input type="password" value={managerPinInput} onChange={(e) => updatePin("manager", e.target.value)} placeholder="••••" className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-accent" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] text-txt3 font-bold px-1">PIN Employé</label>
-                      <input type="password" value={employeePinInput} onChange={(e) => updatePin("employee", e.target.value)} placeholder="••••" className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-green" />
-                    </div>
-                  </div>
-                  <button onClick={resetAll} className="flex items-center justify-center gap-2 w-full bg-red-l border border-red/20 py-4 rounded-2xl font-display font-bold text-sm text-red hover:bg-red/10 transition-all mt-4">
-                    <Trash2 size={18} />
-                    Réinitialiser l'application
-                  </button>
-                </motion.section>
-              )}
-            </motion.div>
           </div>
         </Modal>
       )}
@@ -2724,7 +2661,10 @@ function PinModal({
         onUnlock(true);
       } else {
         setError(true);
-        setPin("");
+        setTimeout(() => {
+          setPin("");
+          setError(false);
+        }, 600);
       }
     }
   };
@@ -2734,71 +2674,88 @@ function PinModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-overlay/20 backdrop-blur-sm"
     >
       <div
-        className="absolute inset-0 bg-overlay backdrop-blur-md"
+        className="absolute inset-0"
         onClick={onClose}
       />
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
         className={cn(
-          "w-full max-w-sm bg-card border border-border rounded-3xl p-8 shadow-2xl relative z-10 text-center",
-          error ? "animate-shake" : "",
+          "w-full max-w-sm bg-card border border-border rounded-2xl p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] relative z-10 text-center",
+          error ? "animate-shake border-red/50 shadow-[0_0_40px_rgba(230,57,70,0.2)]" : "",
         )}
       >
         <div className="mb-6 relative inline-block">
-          <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-white shadow-lg shadow-accent/30">
+          <motion.div 
+            animate={error ? { x: [0, -10, 10, -10, 10, 0] } : {}}
+            className={cn(
+              "w-16 h-16 rounded-full flex items-center justify-center text-white shadow-lg transition-colors duration-300",
+              error ? "bg-red shadow-red/30" : "bg-accent shadow-accent/30"
+            )}
+          >
             {role === "manager" ? <Lock size={28} /> : <User size={28} />}
-          </div>
+          </motion.div>
         </div>
-        <h2 className="text-xl font-display font-bold mb-1">
-          Accès {role === "manager" ? "Manager" : "Employé"}
+        <h2 className="text-2xl font-display font-black mb-1">
+          {role === "manager" ? "Manager" : "Employé"}
         </h2>
-        <p className="text-txt3 text-xs mb-8">
-          Entrez votre code secret à 4 chiffres
+        <p className="text-txt3 text-xs mb-8 font-medium">
+          Saisir le code d'accès
         </p>
 
-        <div className="flex justify-center gap-4 mb-8">
+        <div className="flex justify-center gap-4 mb-10">
           {[0, 1, 2, 3].map((idx) => (
-            <div
+            <motion.div
               key={idx}
+              initial={false}
+              animate={{
+                scale: pin.length > idx ? 1.2 : 1,
+                backgroundColor: pin.length > idx ? "var(--accent)" : "transparent",
+                borderColor: pin.length > idx ? "var(--accent)" : "var(--border2)",
+              }}
               className={cn(
-                "w-4 h-4 rounded-full border-2 transition-all duration-300",
-                pin.length > idx
-                  ? "bg-accent border-accent scale-125 shadow-[0_0_12px_rgba(198,40,40,0.4)]"
-                  : "border-border2",
+                "w-3.5 h-3.5 rounded-full border-2 transition-all duration-200",
+                pin.length > idx && "shadow-[0_0_15px_rgba(230,57,70,0.4)]"
               )}
             />
           ))}
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, "Cancel", 0, "DEL"].map((k, i) => (
-            <button
+        <div className="grid grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, "clear", 0, "back"].map((k, i) => (
+            <motion.button
               key={i}
+              whileHover={{ scale: 1.05, backgroundColor: "var(--card2)" }}
+              whileTap={{ scale: 0.9 }}
               onClick={() => {
-                if (k === "DEL") setPin(pin.slice(0, -1));
-                else if (k === "Cancel") onClose();
+                if (k === "back") setPin(pin.slice(0, -1));
+                else if (k === "clear") setPin("");
                 else handleInput(pin + k);
               }}
               className={cn(
-                "h-14 rounded-2xl flex items-center justify-center font-display font-black text-lg transition-all active:scale-90",
+                "h-16 rounded-full flex flex-col items-center justify-center transition-all",
                 typeof k === "number"
-                  ? "bg-bg border border-border hover:bg-card2"
-                  : "text-txt3 text-xs uppercase",
+                  ? "bg-bg/50 border border-border/50 text-xl font-display font-black"
+                  : "text-txt3 text-[10px] uppercase font-bold tracking-widest"
               )}
             >
-              {k === "DEL" ? <History size={20} /> : k}
-            </button>
+              {k === "back" ? <RotateCcw size={18} /> : 
+               k === "clear" ? "Effacer" : k}
+            </motion.button>
           ))}
         </div>
 
         {error && (
-          <p className="mt-6 text-red text-xs font-bold uppercase tracking-wider">
-            PIN Incorrect
-          </p>
+          <motion.p 
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 text-red text-[10px] font-black uppercase tracking-[0.2em]"
+          >
+            Code Incorrect
+          </motion.p>
         )}
       </motion.div>
     </motion.div>
@@ -2821,21 +2778,27 @@ function Modal({
         onClick={onClose}
       />
       <motion.div
-        initial={{ y: 40, opacity: 0, scale: 0.95 }}
+        initial={{ y: 100, opacity: 0, scale: 0.95 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: 40, opacity: 0, scale: 0.95 }}
-        className="w-full max-w-lg bg-card border border-border rounded-[2.5rem] shadow-[0_30px_100px_rgba(0,0,0,0.5)] relative z-10 overflow-hidden flex flex-col"
+        exit={{ y: 100, opacity: 0, scale: 0.95 }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="w-full max-w-lg bg-card border border-border rounded-2xl shadow-[0_40px_120px_-20px_rgba(0,0,0,0.5)] relative z-10 overflow-hidden flex flex-col"
       >
-        <div className="flex-shrink-0 px-8 py-6 border-b border-border bg-surf flex items-center justify-between">
-          <h2 className="text-xl font-bold tracking-tight">{title}</h2>
-          <button
-            onClick={onClose}
-            className="p-2 border border-border rounded-xl text-txt3 hover:text-accent transition-all"
-          >
-            <X size={20} />
-          </button>
+        <div className="flex-shrink-0 w-full flex flex-col items-center">
+          {/* Grab Handle */}
+          <div className="w-12 h-1 bg-border rounded-full mt-4 flex-shrink-0 opacity-40" />
+          
+          <div className="w-full px-8 py-6 border-b border-border bg-surf/50 backdrop-blur-md flex items-center justify-between">
+            <h2 className="text-xl font-display font-black tracking-tight uppercase">{title}</h2>
+            <button
+              onClick={onClose}
+              className="p-2 border border-border rounded-xl text-txt3 hover:text-accent hover:bg-card2 transition-all active:scale-90"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
-        <div className="flex-1 overflow-y-auto no-scrollbar max-h-[70vh]">
+        <div className="flex-1 overflow-y-auto no-scrollbar max-h-[75vh] p-1">
           {children}
         </div>
       </motion.div>

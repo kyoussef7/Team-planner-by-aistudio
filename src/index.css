@@ -23,6 +23,21 @@
   --color-red-l: var(--red-l);
   --color-amber: var(--amber);
   --color-amber-l: var(--amber-l);
+  --color-overlay: var(--overlay);
+  --color-me: var(--me);
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  --animate-shake: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+  --animate-spin-slow: spin-slow 8s linear infinite;
 }
 
 :root {
@@ -43,6 +58,8 @@
   --red-l: rgba(230, 57, 70, 0.08);
   --amber: #F59E0B;
   --amber-l: rgba(245, 158, 11, 0.1);
+  --overlay: rgba(0, 0, 0, 0.4);
+  --me: #2563eb;
 }
 
 [data-theme="dark"] {
@@ -63,6 +80,8 @@
   --red-l: rgba(230, 57, 70, 0.15);
   --amber: #F59E0B;
   --amber-l: rgba(245, 158, 11, 0.15);
+  --overlay: rgba(0, 0, 0, 0.7);
+  --me: #3b82f6;
 }
 
 @layer base {
