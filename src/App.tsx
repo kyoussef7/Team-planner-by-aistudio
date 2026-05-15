@@ -35,6 +35,9 @@ import {
   Shield,
   LayoutDashboard,
   MoreVertical,
+  MessageCircle,
+  Image as ImageIcon,
+  Send,
 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
@@ -61,19 +64,24 @@ import {
   getFirestore,
   doc,
   setDoc,
+  addDoc,
   onSnapshot,
   serverTimestamp,
   collection,
   getDoc,
   getDocFromServer,
+  query,
+  orderBy,
+  limit,
 } from "firebase/firestore";
 import firebaseConfig from "../firebase-applet-config.json";
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 const auth = getAuth();
 
 import { cn } from "./lib/utils";
+import { ChatView } from "./ChatView";
 import { Employee, Day, AppData, AccessRole, AppState } from "./types";
 import {
   DEFAULT_EMP,
@@ -294,10 +302,13 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  const [view, setView] = useState<"dashboard" | "day" | "week" | "gantt">(
-    "day",
-  );
+  const [view, setView] = useState<
+    "dashboard" | "day" | "week" | "gantt" | "chat"
+  >("day");
   const [theme, setTheme] = useState<"light" | "dark" | "simple">("light");
+  
+  const [lastSeenChat, setLastSeenChat] = useState(() => Number(localStorage.getItem('lastSeenChat')) || Date.now());
+  const [hasUnreadChat, setHasUnreadChat] = useState(false);
 
   const [undoStack, setUndoStack] = useState<AppData[]>([]);
   const [redoStack, setRedoStack] = useState<AppData[]>([]);
@@ -353,6 +364,32 @@ export default function App() {
   const resetIdle = useCallback(() => {
     setIdleTime(0);
   }, []);
+
+  useEffect(() => {
+    if (view === "chat") {
+      const now = Date.now();
+      setLastSeenChat(now);
+      localStorage.setItem("lastSeenChat", now.toString());
+      setHasUnreadChat(false);
+    }
+  }, [view]);
+
+  useEffect(() => {
+    if (view === "chat" || !db) return;
+    const q = query(collection(db, "chat", "general", "messages"), orderBy("timestamp", "desc"), limit(1));
+    const unsub = onSnapshot(q, (snap) => {
+      if (!snap.empty) {
+        const msg = snap.docs[0].data();
+        if (msg.timestamp) {
+          const msgTime = msg.timestamp.toMillis ? msg.timestamp.toMillis() : Date.now();
+          if (msgTime > lastSeenChat) {
+            setHasUnreadChat(true);
+          }
+        }
+      }
+    });
+    return () => unsub();
+  }, [db, view, lastSeenChat]);
 
   useEffect(() => {
     window.addEventListener("mousemove", resetIdle);
@@ -1330,8 +1367,9 @@ export default function App() {
         { id: "dashboard", label: "Home", icon: LayoutDashboard },
         { id: "day", label: "Jour", icon: Clock },
         { id: "week", label: "Semaine", icon: Calendar },
+        { id: "chat", label: "Chat", icon: MessageCircle, hasBadge: hasUnreadChat },
         { id: "menu", label: "Menu", icon: MoreVertical },
-      ].map((item) => (
+      ].map((item: any) => (
         <button
           key={item.id}
           onClick={() => {
@@ -1339,12 +1377,15 @@ export default function App() {
             else setView(item.id as any);
           }}
           className={cn(
-            "flex flex-col items-center gap-1 p-2 rounded-lg transition-colors flex-shrink-0",
+            "flex flex-col items-center gap-1 p-2 rounded-lg transition-colors flex-shrink-0 relative",
             view === item.id ? "text-accent" : "text-txt3",
           )}
         >
           <item.icon size={20} />
           <span className="text-[10px] font-bold uppercase">{item.label}</span>
+          {item.hasBadge && (
+            <span className="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full border border-surf" />
+          )}
         </button>
       ))}
       {isEdit && (
@@ -1572,14 +1613,14 @@ export default function App() {
       <BottomNav />
 
       {/* --- Main Content --- */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-1 lg:p-8 flex flex-col min-h-0 space-y-1 lg:space-y-8 relative z-0">
-        {/* Header Stats bar */}
-        <div
-          className={cn(
-            "flex-shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-6",
-            (view === "day" || view === "week") && "hidden sm:grid",
-          )}
-        >
+      <main className="flex-1 max-w-7xl w-full mx-auto p-1 lg:p-8 flex flex-col min-h-0 space-y-1 lg:space-y-8 pb-20 lg:pb-8 relative z-0">
+        {view !== "chat" && (
+          <div
+            className={cn(
+              "flex-shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-6",
+              (view === "day" || view === "week") && "hidden sm:grid",
+            )}
+          >
           {[
             {
               label: "Total Semaine",
@@ -1636,10 +1677,13 @@ export default function App() {
               </p>
             </div>
           ))}
-        </div>
+          </div>
+        )}
 
         {/* Week Selection & View Controls */}
-        <div className="flex-shrink-0 flex flex-col sm:flex-row items-center gap-3 lg:gap-4 bg-card border border-border p-2 lg:p-4 rounded-2xl shadow-sm">
+        {view !== "chat" && (
+          <>
+            <div className="flex-shrink-0 flex flex-col sm:flex-row items-center gap-3 lg:gap-4 bg-card border border-border p-2 lg:p-4 rounded-2xl shadow-sm">
           <div className="flex items-center gap-1.5 w-full sm:w-auto">
             <button
               onClick={() => changeWeek(-1)}
@@ -1740,6 +1784,8 @@ export default function App() {
             );
           })}
         </div>
+          </>
+        )}
 
         {/* --- Area Specific Content --- */}
         <AnimatePresence mode="wait">
@@ -2087,6 +2133,22 @@ export default function App() {
                   </button>
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {view === "chat" && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="flex-1 min-h-0"
+            >
+              <ChatView
+                db={db}
+                role={role}
+                employeeIdx={employeeIdx}
+                employees={employees}
+              />
             </motion.div>
           )}
         </AnimatePresence>

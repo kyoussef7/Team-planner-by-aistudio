@@ -22,6 +22,15 @@ service cloud.firestore {
     function existing() { return resource.data; }
 
     // --- Entity Validation ---
+    function isValidMessage(msg) {
+      return (msg.keys().hasAll(['text', 'senderName', 'senderColor', 'timestamp']) || msg.keys().hasAll(['image', 'senderName', 'senderColor', 'timestamp'])) &&
+             msg.senderName is string && msg.senderName.size() <= 50 &&
+             msg.senderColor is string && msg.senderColor.size() <= 10 &&
+             (!('text' in msg) || (msg.text is string && msg.text.size() <= 1000)) &&
+             (!('image' in msg) || (msg.image is string && msg.image.size() <= 1000000)) &&
+             msg.timestamp == request.time;
+    }
+
     function isValidShift(sh) {
       return sh.off is bool && sh.s is list && sh.s.size() <= 24;
     }
@@ -41,6 +50,15 @@ service cloud.firestore {
     }
 
     // --- Routes ---
+    match /chat/general/messages/{messageId} {
+      // Anyone logged in can read and write to the general chat
+      allow read: if true; // or if isSignedIn() depending on if unauthenticated employees can see it
+      allow create: if true && isValidMessage(incoming()); 
+      // No updates or deletes for simplicty, or only admins can delete
+      allow delete: if isAdmin();
+      allow update: if false;
+    }
+
     match /plannings/{weekId} {
       // Employees might not have accounts, so they might view via a public link.
       // But the user asked for roles and permissions. I'll stick to Auth.
