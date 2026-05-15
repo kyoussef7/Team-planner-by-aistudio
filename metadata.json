@@ -1,6 +1,6 @@
 {
-  "name": "Team Planning Pro",
-  "description": "A professional team scheduling and management application with multi-user roles, Gantt views, and cloud sync.",
+  "name": "LCK Targa",
+  "description": "Planning hebdomadaire pour l'équipe Lee Cooper Targa. Gestion des horaires, vues Gantt et synchronisation cloud.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

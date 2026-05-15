@@ -123,62 +123,63 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 
 const DayRow = ({ emp, ei, di, isEdit, toggleDayOff, toggleSlot, shift }: any) => {
   const hours = shift.s.reduce((a: number, b: number) => a + (b || 0), 0);
+  const ini = emp.name.slice(0, 2).toUpperCase();
 
   return (
     <div 
       className={cn(
-        "grid grid-cols-[90px_1fr_35px] lg:grid-cols-[140px_1fr_80px] items-center px-3 lg:px-8 py-2.5 lg:py-6 transition-all duration-200", 
-        shift.off ? "bg-bg/40 opacity-70" : "hover:bg-card2/30"
+        "flex items-center px-4 lg:px-8 py-2 lg:py-4 transition-all duration-200 border-b border-border2/30 last:border-0", 
+        shift.off ? "bg-bg/10" : "hover:bg-card2/30"
       )}
     >
-      <div className="flex items-center gap-2 lg:gap-4 overflow-hidden">
-        <button 
-          onClick={() => toggleDayOff(di, ei)}
+      <div className="flex items-center gap-2 lg:gap-3 w-[80px] lg:w-[150px] flex-shrink-0 pr-2 lg:pr-4 lg:border-r lg:border-border2/50 mr-2 lg:mr-4">
+        <div 
           className={cn(
-            "w-6 h-6 lg:w-10 lg:h-10 rounded-lg flex-shrink-0 flex items-center justify-center font-bold text-[10px] lg:text-sm transition-all",
-            shift.off ? "bg-txt3 text-white grayscale" : "shadow-sm border border-border2"
+            "w-7 h-7 lg:w-9 lg:h-9 rounded-lg flex-shrink-0 flex items-center justify-center font-display font-bold text-[9px] lg:text-xs transition-all shadow-sm",
+            shift.off ? "opacity-30 grayscale" : ""
           )} 
-          style={!shift.off ? { backgroundColor: emp.hex + '10', color: emp.hex, borderColor: emp.hex + '20' } : {}}
+          style={!shift.off ? { backgroundColor: emp.hex + '15', color: emp.hex } : { backgroundColor: 'var(--border2)', color: 'var(--txt3)' }}
+          onClick={() => isEdit && toggleDayOff(di, ei)}
         >
-          {emp.name.slice(0, 1)}
-        </button>
-        <div className="truncate min-w-0">
-          <p className={cn("font-bold text-[10px] lg:text-sm tracking-tight truncate", shift.off ? "text-txt3" : "text-txt")}>
-            {emp.name.split(' ')[0]}
+          {ini}
+        </div>
+        <div className="truncate min-w-0 flex-1">
+          <p 
+            className={cn("font-display font-bold text-[10px] lg:text-sm tracking-tight truncate", shift.off ? "text-txt3" : "")} 
+            style={{ color: !shift.off ? emp.hex : undefined }}
+            onClick={() => isEdit && toggleDayOff(di, ei)}
+          >
+            {emp.name}
           </p>
-          {shift.off && <p className="text-[8px] lg:text-[9px] text-red font-black uppercase tracking-tighter leading-none mt-0.5">Congé</p>}
         </div>
       </div>
 
-      <div className="grid grid-cols-11 gap-0.5 lg:gap-1 h-9 lg:h-14 relative group">
+      <div className="flex-1 grid grid-cols-11 gap-1 h-8 lg:h-11 relative">
         {shift.off ? (
-          <div className="absolute inset-0 bg-repeating-lines opacity-10 rounded-lg overflow-hidden">
-            <div className="w-full h-full bg-[linear-gradient(45deg,transparent_25%,rgba(0,0,0,0.05)_25%,rgba(0,0,0,0.05)_50%,transparent_50%,transparent_75%,rgba(0,0,0,0.05)_75%,rgba(0,0,0,0.05))] bg-[length:10px_10px]" />
+          <div className="col-span-11 bg-repeating-lines opacity-10 rounded-md flex items-center justify-center border border-border/20">
+            <span className="font-mono text-[8px] lg:text-xs tracking-widest text-txt3 uppercase font-black">Day Off</span>
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-11 gap-0.5 lg:gap-1">
-              {shift.s.map((val, si) => (
-                <button 
-                  key={si}
-                  disabled={!isEdit}
-                  onClick={() => toggleSlot(di, ei, si)}
-                  className={cn(
-                    "h-full rounded-[4px] lg:rounded-xl border transition-all duration-150",
-                    val ? "shadow-sm border-white/20" : "bg-bg/40 border-border/40 hover:border-txt3 hover:bg-white/5",
-                    isEdit ? "cursor-pointer active:scale-95" : "cursor-default"
-                  )}
-                  style={{ backgroundColor: val ? emp.hex : undefined }}
-                />
-              ))}
-            </div>
-          </>
+          shift.s.map((v: number, si: number) => (
+            <div 
+              key={si}
+              onClick={() => isEdit && toggleSlot(di, ei, si)}
+              className={cn(
+                "h-full rounded-md border transition-all",
+                isEdit ? "cursor-pointer active:scale-95" : "cursor-default",
+                v ? "border-white/20 shadow-sm" : "bg-surf/40 border-border/40"
+              )}
+              style={v ? { backgroundColor: emp.hex } : {}}
+            />
+          ))
         )}
       </div>
 
-      <div className="text-right flex flex-col items-end">
-        <span className={cn("text-xs lg:text-lg font-mono font-black tracking-tighter", shift.off ? "text-txt3" : "text-txt")}>{shift.off ? '—' : hours}</span>
-        {!shift.off && hours > 0 && <span className="text-[7px] lg:text-[9px] text-accent font-bold uppercase leading-none">Hrs</span>}
+      <div className={cn(
+        "w-[35px] lg:w-[60px] flex-shrink-0 text-right font-mono font-bold text-[11px] lg:text-lg ml-2 lg:ml-4 pl-2 lg:pl-4 border-l border-border2/50",
+        shift.off ? "text-txt3" : ""
+      )} style={{ color: !shift.off ? emp.hex : undefined }}>
+        {shift.off ? '—' : `${hours}h`}
       </div>
     </div>
   );
@@ -909,44 +910,10 @@ export default function App() {
                   <div className="flex flex-col">
                     <h2 className="text-xl lg:text-2xl font-display font-black tracking-tight text-txt uppercase leading-none">{emp.name}</h2>
                     <div className="flex items-center gap-2 mt-1">
-                       <button 
-                         onClick={() => changeWeek(-1)}
-                         className="text-txt3 hover:text-accent transition-colors active:scale-90"
-                       >
-                         <ChevronLeft size={16} />
-                       </button>
-                       
-                       <div className="flex items-center gap-2">
-                          <span className={cn(
-                            "text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border",
-                            isSameDay(monday, realMonday) 
-                              ? "bg-accent border-accent text-white" 
-                              : "bg-surf border-border text-txt3"
-                          )}>
-                             {isSameDay(monday, realMonday) ? 'En cours' : monday < realMonday ? 'Archives' : 'À venir'}
-                          </span>
-                          <span className="font-mono text-[10px] font-bold text-txt3 opacity-60">
-                             {format(monday, 'dd/MM/yy')} → {format(addDays(monday, 6), 'dd/MM/yy')}
-                          </span>
-                       </div>
-
-                       <button 
-                         onClick={() => changeWeek(1)}
-                         disabled={monday >= maxMonday}
-                         className="text-txt3 hover:text-accent transition-colors active:scale-90 disabled:opacity-20"
-                       >
-                         <ChevronRight size={16} />
-                       </button>
+                       <button onClick={() => changeWeek(-1)} className="text-txt3 hover:text-accent transition-colors active:scale-90"><ChevronLeft size={16} /></button>
+                       <span className="font-mono text-[10px] font-bold text-txt3 opacity-60">{format(monday, 'dd MMM')} - {format(addDays(monday, 6), 'dd MMM')}</span>
+                       <button onClick={() => changeWeek(1)} className="text-txt3 hover:text-accent transition-colors active:scale-90"><ChevronRight size={16} /></button>
                     </div>
-                  </div>
-               </div>
-               <div className="flex items-center gap-3">
-                  <div className="text-right">
-                     <span className="text-3xl lg:text-4xl font-display font-black text-accent leading-none tracking-tighter">{weeklyTotal}h</span>
-                  </div>
-                  <div className="flex flex-col text-left -space-y-1 opacity-40">
-                     <span className="text-[8px] font-black uppercase tracking-widest text-txt3">Total</span>
-                     <span className="text-[8px] font-black uppercase tracking-widest text-txt3">Semaine</span>
                   </div>
                </div>
             </div>
@@ -971,8 +938,7 @@ export default function App() {
                   return (
                     <div 
                       key={di} 
-                      onClick={() => setSelectedDayPopup(di)}
-                      className={cn("grid grid-cols-[80px_1fr_40px] lg:grid-cols-[110px_1fr_60px] items-center p-3 lg:p-6 transition-colors cursor-pointer", sh.off ? "bg-bg/20 opacity-70" : isToday ? "bg-accent/5 border-l-2 border-l-accent" : "hover:bg-card2/50")}
+                      className={cn("grid grid-cols-[80px_1fr_40px] lg:grid-cols-[110px_1fr_60px] items-center p-3 lg:p-6 transition-colors", sh.off ? "bg-bg/20 opacity-70" : isToday ? "bg-accent/5 border-l-2 border-l-accent" : "hover:bg-card2/50")}
                     >
                         <div className="flex flex-col gap-0.5 overflow-hidden pr-2">
                            <span className={cn("text-[10px] lg:text-sm font-display font-black uppercase tracking-widest truncate", isToday ? "text-accent" : "text-txt")}>{day.id}</span>
@@ -990,21 +956,10 @@ export default function App() {
                                     {sh.s.map((v, i) => (
                                        <div 
                                           key={i} 
-                                          className={cn(
-                                             "rounded-[3px] lg:rounded-xl transition-all",
-                                             v ? "shadow-md border border-white/10" : "bg-bg/40 border border-border/30"
-                                          )}
+                                          className={cn("rounded-[3px] lg:rounded-xl transition-all", v ? "shadow-md border border-white/10" : "bg-bg/40 border border-border/30")}
                                           style={{ backgroundColor: v ? emp.hex : undefined }}
                                        />
                                     ))}
-                                 </div>
-                                 <div className="hidden sm:flex items-center justify-between">
-                                    {sh.s.some(v => v) ? (
-                                       <p className="text-[8px] lg:text-[10px] font-mono text-txt3 flex items-center gap-1 opacity-60">
-                                          <Clock size={10} />
-                                          {sh.s.findIndex(v => v) + 10}h — {(11 - [...sh.s].reverse().findIndex(v => v)) + 10}h
-                                       </p>
-                                    ) : <div />}
                                  </div>
                               </div>
                            ) : (
@@ -1171,111 +1126,103 @@ export default function App() {
       {/* --- Main Content --- */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-1 lg:p-8 flex flex-col min-h-0 space-y-1 lg:space-y-8 pb-24">
         
-        {role === 'employee' && employeeIdx !== null && view === 'day' ? (
-          <div className="flex-1 overflow-y-auto no-scrollbar">
-            <PersonalView />
-          </div>
-        ) : (
-          <>
-            {/* Header Stats bar */}
-            <div className={cn("flex-shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-6", view === 'day' && "hidden sm:grid")}>
-              {[
-                { label: 'Total Semaine', value: `${grandTotal}h`, sub: 'Heures planifiées', icon: Calendar, color: 'text-accent' },
-                { label: 'Moyenne / Jour', value: `${avgPerDay}h`, sub: 'Par journée', icon: Clock, color: 'text-txt' },
-                { label: 'Effectif', value: employees.length, sub: 'Agents actifs', icon: Users, color: 'text-txt' },
-                { label: 'Jours Repos', value: offDays, sub: 'Temps libre', icon: Moon, color: 'text-txt' }
-              ].map((stat, i) => (
-                <div key={i} className="bg-card border border-border px-5 py-4 lg:py-6 rounded-2xl shadow-sm relative overflow-hidden group transition-all duration-300 hover:border-accent/40">
-                  <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <stat.icon size={48} />
-                  </div>
-                  <p className="text-[10px] font-sans font-bold text-txt3 uppercase tracking-[0.1em] mb-1.5">{stat.label}</p>
-                  <div className="flex items-baseline gap-1">
-                    <span className={cn("text-2xl lg:text-3xl font-bold tracking-tighter", stat.color)}>{stat.value}</span>
-                  </div>
-                  <p className="text-[9px] text-txt3 font-mono mt-2 flex items-center gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-accent animate-pulse" />
-                    {stat.sub}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            {/* Week Selection & View Controls */}
-            <div className="flex-shrink-0 flex flex-col sm:flex-row items-center gap-3 lg:gap-4 bg-card border border-border p-2 lg:p-4 rounded-2xl shadow-sm">
-              <div className="flex items-center gap-1.5 w-full sm:w-auto">
-                <button onClick={() => changeWeek(-1)} className="p-2 border border-border rounded-xl text-txt3 hover:text-accent hover:bg-accent-l transition-all">
-                  <ChevronLeft size={18} />
-                </button>
-                <div className="flex-1 text-center sm:min-w-[180px] px-4">
-                  <span className="font-mono font-bold text-xs lg:text-sm text-txt">
-                    {weekLabel(monday)}
-                  </span>
-                </div>
-                <button 
-                  onClick={() => changeWeek(1)} 
-                  disabled={monday >= maxMonday}
-                  className="p-2 border border-border rounded-xl text-txt3 hover:text-accent hover:bg-accent-l transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-txt3"
-                >
-                  <ChevronRight size={18} />
-                </button>
-                <button 
-                  onClick={() => {
-                    if (!isSameDay(monday, realMonday)) {
-                      setMonday(realMonday);
-                      const dataKey = `${STORAGE_KEYS.DATA_PREFIX}${format(realMonday, 'yyyy_MM_dd')}`;
-                      const savedData = localStorage.getItem(dataKey);
-                      if (savedData) {
-                        setData(JSON.parse(savedData));
-                      } else {
-                        const initial = getBlankWeek(realMonday, employees);
-                        setData(initial);
-                        localStorage.setItem(dataKey, JSON.stringify(initial));
-                      }
-                      setUndoStack([]);
-                      setRedoStack([]);
-                    }
-                  }}
-                  className="p-2 border border-border rounded-xl text-txt3 hover:text-accent hover:bg-accent-l transition-all"
-                  title="Aujourd'hui"
-                >
-                  <History size={16} />
-                </button>
+        {/* Header Stats bar */}
+        <div className={cn("flex-shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-6", view === 'day' && "hidden sm:grid")}>
+          {[
+            { label: 'Total Semaine', value: `${grandTotal}h`, sub: 'Heures planifiées', icon: Calendar, color: 'text-accent' },
+            { label: 'Moyenne / Jour', value: `${avgPerDay}h`, sub: 'Par journée', icon: Clock, color: 'text-txt' },
+            { label: 'Effectif', value: employees.length, sub: 'Agents actifs', icon: Users, color: 'text-txt' },
+            { label: 'Jours Repos', value: offDays, sub: 'Temps libre', icon: Moon, color: 'text-txt' }
+          ].map((stat, i) => (
+            <div key={i} className="bg-card border border-border px-5 py-4 lg:py-6 rounded-2xl shadow-sm relative overflow-hidden group transition-all duration-300 hover:border-accent/40">
+              <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                <stat.icon size={48} />
               </div>
+              <p className="text-[10px] font-sans font-bold text-txt3 uppercase tracking-[0.1em] mb-1.5">{stat.label}</p>
+              <div className="flex items-baseline gap-1">
+                <span className={cn("text-2xl lg:text-3xl font-bold tracking-tighter", stat.color)}>{stat.value}</span>
+              </div>
+              <p className="text-[9px] text-txt3 font-mono mt-2 flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-accent animate-pulse" />
+                {stat.sub}
+              </p>
             </div>
+          ))}
+        </div>
 
-            {/* Day Totals Bar */}
-            <div className={cn("flex-shrink-0 grid grid-cols-7 gap-1.5 lg:gap-4 overflow-x-auto no-scrollbar", view === 'day' && "lg:grid")}>
-              {data.map((day, idx) => {
-                const isToday = isSameDay(addDays(monday, idx), new Date());
-                const total = day.shifts.reduce((acc, sh) => acc + (sh.off ? 0 : sh.s.reduce((a, b: number) => a + (b || 0), 0)), 0);
-                return (
-                  <button 
-                    key={day.id}
-                    onClick={() => handleDaySelect(idx)}
-                    className={cn(
-                      "flex flex-col items-center py-2 lg:py-5 border rounded-xl transition-all duration-300 group",
-                      activeDay === idx 
-                        ? "bg-accent text-white border-accent shadow-lg shadow-accent/20 scale-105" 
-                        : isToday 
-                          ? "bg-amber-l border-amber/40 hover:border-amber" 
-                          : "bg-card border-border hover:border-txt3"
-                    )}
-                  >
-                    <span className={cn(
-                      "text-[9px] lg:text-xs font-bold uppercase tracking-widest",
-                      activeDay === idx ? "text-white/80" : isToday ? "text-amber" : "text-txt3"
-                    )}>{day.id}</span>
-                    <span className={cn(
-                      "text-xs lg:text-xl font-bold mt-0.5 lg:mt-1",
-                      activeDay === idx ? "text-white" : isToday ? "text-amber" : "text-txt"
-                    )}>{total}h</span>
-                  </button>
-                );
-              })}
+        {/* Week Selection & View Controls */}
+        <div className="flex-shrink-0 flex flex-col sm:flex-row items-center gap-3 lg:gap-4 bg-card border border-border p-2 lg:p-4 rounded-2xl shadow-sm">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <button onClick={() => changeWeek(-1)} className="p-2 border border-border rounded-xl text-txt3 hover:text-accent hover:bg-accent-l transition-all">
+              <ChevronLeft size={18} />
+            </button>
+            <div className="flex-1 text-center sm:min-w-[180px] px-4">
+              <span className="font-mono font-bold text-xs lg:text-sm text-txt">
+                {weekLabel(monday)}
+              </span>
             </div>
-          </>
-        )}
+            <button 
+              onClick={() => changeWeek(1)} 
+              disabled={monday >= maxMonday}
+              className="p-2 border border-border rounded-xl text-txt3 hover:text-accent hover:bg-accent-l transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-txt3"
+            >
+              <ChevronRight size={18} />
+            </button>
+            <button 
+              onClick={() => {
+                if (!isSameDay(monday, realMonday)) {
+                  setMonday(realMonday);
+                  const dataKey = `${STORAGE_KEYS.DATA_PREFIX}${format(realMonday, 'yyyy_MM_dd')}`;
+                  const savedData = localStorage.getItem(dataKey);
+                  if (savedData) {
+                    setData(JSON.parse(savedData));
+                  } else {
+                    const initial = getBlankWeek(realMonday, employees);
+                    setData(initial);
+                    localStorage.setItem(dataKey, JSON.stringify(initial));
+                  }
+                  setUndoStack([]);
+                  setRedoStack([]);
+                }
+              }}
+              className="p-2 border border-border rounded-xl text-txt3 hover:text-accent hover:bg-accent-l transition-all"
+              title="Aujourd'hui"
+            >
+              <History size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Day Totals Bar */}
+        <div className={cn("flex-shrink-0 grid grid-cols-7 gap-1.5 lg:gap-4 overflow-x-auto no-scrollbar", view === 'day' && "lg:grid")}>
+          {data.map((day, idx) => {
+            const isToday = isSameDay(addDays(monday, idx), new Date());
+            const total = day.shifts.reduce((acc, sh) => acc + (sh.off ? 0 : sh.s.reduce((a, b: number) => a + (b || 0), 0)), 0);
+            return (
+              <button 
+                key={day.id}
+                onClick={() => handleDaySelect(idx)}
+                className={cn(
+                  "flex flex-col items-center py-2 lg:py-5 border rounded-xl transition-all duration-300 group",
+                  activeDay === idx 
+                    ? "bg-accent text-white border-accent shadow-lg shadow-accent/20 scale-105" 
+                    : isToday 
+                      ? "bg-amber-l border-amber/40 hover:border-amber" 
+                      : "bg-card border-border hover:border-txt3"
+                )}
+              >
+                <span className={cn(
+                  "text-[9px] lg:text-xs font-bold uppercase tracking-widest",
+                  activeDay === idx ? "text-white/80" : isToday ? "text-amber" : "text-txt3"
+                )}>{day.id}</span>
+                <span className={cn(
+                  "text-xs lg:text-xl font-bold mt-0.5 lg:mt-1",
+                  activeDay === idx ? "text-white" : isToday ? "text-amber" : "text-txt"
+                )}>{total}h</span>
+              </button>
+            );
+          })}
+        </div>
 
         {/* --- Area Specific Content --- */}
         <AnimatePresence mode="wait">
@@ -1283,56 +1230,92 @@ export default function App() {
             <ManagerDashboard />
           )}
 
+          {view === 'dashboard' && role === 'employee' && (
+            <PersonalView />
+          )}
+
           {view === 'day' && (
             <motion.div 
               key="day"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
               className="flex-1 min-h-0 flex flex-col"
             >
                {/* Day Card */}
               {data[activeDay] && (
-                <div className="flex-1 min-h-0 bg-card border border-border rounded-2xl lg:rounded-3xl shadow-xl overflow-hidden flex flex-col">
-                   <div className="flex-shrink-0 p-3 lg:p-6 bg-surf border-b border-border flex items-center justify-between">
-                     <div className="flex items-center gap-3 lg:gap-4">
-                        <div className="w-9 h-9 lg:w-14 lg:h-14 bg-accent/5 border border-accent/20 rounded-xl lg:rounded-2xl flex items-center justify-center text-accent font-black text-lg lg:text-2xl">
+                <div className="flex-1 min-h-0 bg-card border border-border rounded-2xl lg:rounded-[2rem] shadow-[0_8px_40px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col relative">
+                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.02)_0%,transparent_100%)] pointer-events-none" />
+                  
+                   <div className="flex-shrink-0 p-4 lg:p-10 bg-surf/80 backdrop-blur-md border-b border-border flex items-center justify-between z-10">
+                     <div className="flex items-center gap-4 lg:gap-8">
+                        <div className="w-12 h-12 lg:w-24 lg:h-24 bg-accent/5 border border-accent/20 rounded-[1.25rem] lg:rounded-[2rem] flex items-center justify-center text-accent font-display font-black text-xl lg:text-5xl shadow-inner">
                           {data[activeDay].full.slice(0, 1)}
                         </div>
                         <div>
-                          <h2 className="text-base lg:text-2xl font-bold tracking-tight">{data[activeDay].full}</h2>
-                          <p className="text-[10px] lg:text-sm text-txt3 font-mono uppercase tracking-[0.2em]">{data[activeDay].date}</p>
+                          <h2 className="text-xl lg:text-4xl font-display font-bold tracking-tight text-txt uppercase">{data[activeDay].full}</h2>
+                          <div className="flex items-center gap-2 mt-1 lg:mt-3">
+                            <span className="text-[10px] lg:text-base text-txt3 font-mono tracking-widest uppercase bg-card2/50 px-2 lg:px-4 py-0.5 lg:py-1 rounded-full border border-border">{data[activeDay].date}</span>
+                          </div>
                         </div>
                      </div>
-                     <div className="flex flex-col items-end">
-                       <span className="text-2xl lg:text-4xl font-bold text-accent tracking-tighter leading-none">
-                         {data[activeDay].shifts.reduce((acc, sh) => acc + (sh.off ? 0 : sh.s.reduce((a, b) => a + b, 0)), 0)}<span className="text-sm lg:text-base ml-0.5 opacity-50 uppercase">h</span>
-                       </span>
-                       <span className="hidden lg:block text-[10px] text-txt3 uppercase font-bold tracking-widest mt-1">Couverture</span>
+                     <div className="flex flex-col items-end gap-2 lg:gap-4">
+                       <div className="flex items-center gap-3">
+                          <div className="hidden lg:block w-32 h-2.5 bg-border/40 rounded-full overflow-hidden">
+                             <div 
+                               className="h-full bg-accent transition-all duration-700 ease-out shadow-[0_0_15px_rgba(230,57,70,0.3)]" 
+                               style={{ width: `${Math.min(100, (data[activeDay].shifts.reduce((a, sh) => a + (sh.off ? 0 : sh.s.reduce((va, vb) => va + vb, 0)), 0) / (employees.length * 11)) * 100)}%` }}
+                             />
+                          </div>
+                          <span className="text-3xl lg:text-6xl font-display font-black text-accent tracking-tighter leading-none">
+                            {data[activeDay].shifts.reduce((acc, sh) => acc + (sh.off ? 0 : sh.s.reduce((a, b) => a + b, 0)), 0)}<small className="text-xs lg:text-2xl font-bold ml-1 opacity-40 uppercase">h</small>
+                          </span>
+                       </div>
+                       <span className="text-[9px] lg:text-xs text-txt3 uppercase font-bold tracking-[0.2em] bg-accent/5 px-3 py-1 rounded-full border border-accent/10">COUVERTURE TOTALE</span>
                      </div>
                    </div>
 
-                   <div className="flex-1 min-h-0 min-w-0 overflow-x-auto no-scrollbar">
-                      <div className="min-w-[380px] lg:min-w-[700px] h-full flex flex-col">
+                   <div className="flex-1 min-h-0 min-w-0 overflow-x-auto no-scrollbar bg-card2/20">
+                      <div className="min-w-[480px] lg:min-w-[900px] h-full flex flex-col pt-4 lg:pt-8 px-4 lg:px-10 pb-20">
                         {/* Time Ruler */}
-                        <div className="flex-shrink-0 grid grid-cols-[90px_1fr_35px] lg:grid-cols-[140px_1fr_80px] items-center px-3 lg:px-8 py-3 lg:py-5 border-b border-border/60 bg-card2/50 backdrop-blur-sm sticky top-0 z-10">
-                          <div className="text-[9px] lg:text-[10px] font-bold text-txt3 tracking-widest uppercase">Équipe</div>
-                          <div className="grid grid-cols-11 gap-0.5 lg:gap-1">
-                            {Array.from({ length: 11 }).map((_, i) => (
-                               <div key={i} className="text-center">
-                                 <span className="text-[9px] lg:text-xs font-mono font-bold text-txt">{i + 10}</span>
-                                 <span className="text-[7px] lg:text-[8px] font-mono text-txt3 opacity-60 ml-0.5 uppercase">h</span>
-                               </div>
-                            ))}
+                        <div className="flex-shrink-0 flex items-center px-4 lg:px-8 py-3 lg:py-6 bg-surf border border-border shadow-sm rounded-xl lg:rounded-2xl mb-4 lg:mb-8 sticky top-0 z-20">
+                          <div className="w-[80px] lg:w-[150px] shrink-0 text-[10px] lg:text-xs font-display font-black text-txt3 tracking-[0.15em] uppercase mr-2 lg:mr-4">Équipe</div>
+                          <div className="flex-1 grid grid-cols-11 gap-1">
+                            {Array.from({ length: 11 }).map((_, i) => {
+                               const hour = i + 10;
+                               const isNow = new Date().getHours() === hour;
+                               return (
+                                 <div key={i} className="text-center group">
+                                   <div className="flex flex-col items-center">
+                                     <span className={cn(
+                                       "text-[9px] lg:text-sm font-mono font-bold transition-colors",
+                                       isNow ? "text-accent scale-110" : "text-txt group-hover:text-accent"
+                                     )}>{hour}</span>
+                                     <span className={cn(
+                                       "text-[7px] lg:text-[10px] font-mono opacity-40 uppercase",
+                                       isNow ? "text-accent opacity-100 font-bold" : "text-txt3"
+                                     )}>{hour >= 12 ? 'pm' : 'am'}</span>
+                                   </div>
+                                 </div>
+                               );
+                            })}
                           </div>
-                          <div className="text-right text-[9px] lg:text-[10px] font-bold text-txt3 tracking-widest uppercase">Tot</div>
+                          <div className="w-[35px] lg:w-[60px] shrink-0 text-right text-[10px] lg:text-xs font-display font-black text-txt3 tracking-[0.15em] uppercase ml-2 lg:ml-4">Total</div>
                         </div>
 
-                        <div className="flex-1 min-h-0 flex flex-col divide-y divide-border/40 overflow-y-auto no-scrollbar">
+                        <div className="bg-surf border border-border rounded-xl lg:rounded-[2.5rem] shadow-sm divide-y divide-border/30 overflow-hidden">
                            {employees.map((emp, ei) => (
-                             <tr key={emp.name} className="hover:bg-card2/30 transition-colors">
-                              <td className="p-3">{emp.name}</td>
-                            </tr>
+                             <DayRow 
+                               key={emp.name} 
+                               emp={emp} 
+                               ei={ei} 
+                               di={activeDay} 
+                               isEdit={isEdit} 
+                               toggleDayOff={toggleDayOff}
+                               toggleSlot={toggleSlot}
+                               shift={data[activeDay].shifts[ei]}
+                             />
                            ))}
                         </div>
                       </div>
