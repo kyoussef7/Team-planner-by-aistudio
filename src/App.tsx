@@ -33,8 +33,11 @@ import {
   Share2,
   X,
   Shield,
-  LayoutDashboard
+  LayoutDashboard,
+  MoreVertical
 } from 'lucide-react';
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 import { QRCodeSVG } from 'qrcode.react';
 import { format, addDays, startOfWeek, subDays, isSameDay, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -128,11 +131,11 @@ const DayRow = ({ emp, ei, di, isEdit, toggleDayOff, toggleSlot, shift }: any) =
   return (
     <div 
       className={cn(
-        "flex items-center px-4 lg:px-8 py-2 lg:py-4 transition-all duration-200 border-b border-border2/30 last:border-0", 
+        "flex items-center px-2 lg:px-8 py-1.5 lg:py-4 transition-all duration-200 border-b border-border2/30 last:border-0", 
         shift.off ? "bg-bg/10" : "hover:bg-card2/30"
       )}
     >
-      <div className="flex items-center gap-2 lg:gap-3 w-[80px] lg:w-[150px] flex-shrink-0 pr-2 lg:pr-4 lg:border-r lg:border-border2/50 mr-2 lg:mr-4">
+      <div className="flex items-center gap-1.5 lg:gap-3 w-[65px] lg:w-[150px] flex-shrink-0 pr-1.5 lg:pr-4 lg:border-r lg:border-border2/50 mr-1.5 lg:mr-4">
         <div 
           className={cn(
             "w-7 h-7 lg:w-9 lg:h-9 rounded-lg flex-shrink-0 flex items-center justify-center font-display font-bold text-[9px] lg:text-xs transition-all shadow-sm",
@@ -154,9 +157,9 @@ const DayRow = ({ emp, ei, di, isEdit, toggleDayOff, toggleSlot, shift }: any) =
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-11 gap-1 h-8 lg:h-11 relative">
+      <div className="flex-1 grid grid-cols-12 gap-1 h-8 lg:h-12 relative">
         {shift.off ? (
-          <div className="col-span-11 bg-repeating-lines opacity-10 rounded-md flex items-center justify-center border border-border/20">
+          <div className="col-span-12 bg-repeating-lines opacity-10 rounded-md flex items-center justify-center border border-border/20">
             <span className="font-mono text-[8px] lg:text-xs tracking-widest text-txt3 uppercase font-black">Day Off</span>
           </div>
         ) : (
@@ -176,7 +179,7 @@ const DayRow = ({ emp, ei, di, isEdit, toggleDayOff, toggleSlot, shift }: any) =
       </div>
 
       <div className={cn(
-        "w-[35px] lg:w-[60px] flex-shrink-0 text-right font-mono font-bold text-[11px] lg:text-lg ml-2 lg:ml-4 pl-2 lg:pl-4 border-l border-border2/50",
+        "w-[30px] lg:w-[60px] flex-shrink-0 text-right font-mono font-bold text-[10px] lg:text-lg ml-1.5 lg:ml-4 pl-1.5 lg:pl-4 border-l border-border2/50",
         shift.off ? "text-txt3" : ""
       )} style={{ color: !shift.off ? emp.hex : undefined }}>
         {shift.off ? '—' : `${hours}h`}
@@ -211,12 +214,12 @@ const GanttCell = ({ di, ei, emp, shift }: any) => {
                 key={bi}
                 className="absolute h-8 rounded-lg shadow-sm shadow-black/10 border border-white/10"
                 style={{ 
-                   left: `${(b.start / 11) * 100}%`, 
-                   width: `${((b.end - b.start + 1) / 11) * 100}%`,
+                   left: `${(b.start / 12) * 100}%`, 
+                   width: `${((b.end - b.start + 1) / 12) * 100}%`,
                    backgroundColor: emp.hex,
                    zIndex: 10
                 }}
-                title={`${b.start+10}h - ${b.end+11}h`}
+                title={`${b.start+10}h - ${b.end+12}h`}
              />
           ))
        )}
@@ -241,9 +244,15 @@ export default function App() {
   const [redoStack, setRedoStack] = useState<AppData[]>([]);
   
   const [pinModal, setPinModal] = useState<{ open: boolean; role: AccessRole } | null>(null);
+  const [menuModal, setMenuModal] = useState(false);
   const [settingsModal, setSettingsModal] = useState(false);
   const [empModal, setEmpModal] = useState(false);
   const [qrModal, setQrModal] = useState(false);
+  const [pdfOptions, setPdfOptions] = useState({
+    layout: 'weekly',
+    dateRange: 'current',
+    selectedEmployees: [] as string[] // empty for all
+  });
   const [changelogModal, setChangelogModal] = useState(false);
   
   const [employeeIdx, setEmployeeIdx] = useState<number | null>(null);
@@ -342,6 +351,54 @@ export default function App() {
     return () => unsubscribe();
   }, [weekId, authLoading, monday]);
 
+  // --- Seed Data for Testing ---
+  useEffect(() => {
+    if (authLoading || role !== 'manager' || !user) return;
+    
+    const checkAndSeed = async () => {
+      try {
+        const weeksToSeed = [realMonday, subDays(realMonday, 7)];
+        
+        for (const m of weeksToSeed) {
+          const wId = format(m, 'yyyy-MM-dd');
+          const docRef = doc(db, `plannings/${wId}`);
+          const snap = await getDoc(docRef);
+          
+          if (!snap.exists()) {
+            const emps = employees.length > 0 ? employees : [...DEFAULT_EMP];
+            const testData = getBlankWeek(m, emps).map((day, di) => {
+              const seedDay = SEED_DATA[di];
+              return {
+                ...day,
+                shifts: emps.map((_, ei) => {
+                  if (seedDay && seedDay.shifts[ei]) return JSON.parse(JSON.stringify(seedDay.shifts[ei]));
+                  // Fallback for extra employees or missing seed data
+                  const isOff = (di + ei) % 5 === 0;
+                  return { 
+                    off: isOff, 
+                    s: new Array(12).fill(0).map((_, si) => (!isOff && si >= 3 && si < 8 ? 1 : 0)) 
+                  };
+                })
+              };
+            });
+            
+            await setDoc(docRef, {
+              monday: m.toISOString(),
+              data: testData,
+              employees: emps,
+              updatedAt: serverTimestamp()
+            });
+            console.log(`Successfully seeded test data for ${wId}`);
+          }
+        }
+      } catch (err) {
+        console.error("Error seeding test data:", err);
+      }
+    };
+    
+    checkAndSeed();
+  }, [authLoading, role, user, employees, realMonday]);
+
   const getBlankWeek = (m: Date, emps: Employee[]): AppData => {
     const dayNames = [
       { id: 'lun', full: 'LUNDI' },
@@ -355,14 +412,14 @@ export default function App() {
     return dayNames.map((d, i) => ({
       ...d,
       date: format(addDays(m, i), 'dd/MM'),
-      shifts: emps.map(() => ({ off: false, s: new Array(11).fill(0) }))
+      shifts: emps.map(() => ({ off: false, s: new Array(12).fill(0) }))
     }));
   };
 
   const syncEmployeesInDayData = (dayData: AppData, emps: Employee[]) => {
     dayData.forEach(d => {
       while (d.shifts.length < emps.length) {
-        d.shifts.push({ off: false, s: new Array(11).fill(0) });
+        d.shifts.push({ off: false, s: new Array(12).fill(0) });
       }
       if (d.shifts.length > emps.length) {
         d.shifts.splice(emps.length);
@@ -465,7 +522,7 @@ export default function App() {
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-6"
+        className="space-y-6 pb-32"
       >
         <div className="flex items-center justify-between">
           <div>
@@ -621,7 +678,7 @@ export default function App() {
     const newData = [...data];
     const sh = newData[di].shifts[ei];
     sh.off = !sh.off;
-    if (sh.off) sh.s = new Array(11).fill(0);
+    if (sh.off) sh.s = new Array(12).fill(0);
     saveData(newData);
   };
 
@@ -857,6 +914,9 @@ export default function App() {
 
     // Find next shift
     const today = new Date();
+    const todayIdx = data.findIndex((_, i) => isSameDay(addDays(monday, i), today));
+    const todayData = todayIdx !== -1 ? data[todayIdx] : null;
+
     let nextShiftInfo = "Aucun shift prévu";
     for(let i=0; i<7; i++) {
        const dayDate = addDays(monday, i);
@@ -874,132 +934,134 @@ export default function App() {
        <motion.div 
          initial={{ opacity: 0, y: 10 }}
          animate={{ opacity: 1, y: 0 }}
-         className="space-y-4 lg:space-y-6"
+         className="space-y-6 pb-24"
        >
+         <div className="flex items-center justify-between">
+           <div>
+             <h2 className="text-2xl font-display font-black tracking-tight text-txt uppercase">Mon Espace</h2>
+             <p className="text-txt3 text-xs">Bonjour {emp.name}, voici ton planning</p>
+           </div>
+           <div className="flex items-center gap-2">
+              <div 
+                className="w-10 h-10 rounded-xl" 
+                style={{ backgroundColor: emp.hex }} 
+              />
+           </div>
+         </div>
+
          {/* Employee Dashboard Cards */}
          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-card border border-border p-4 rounded-2xl shadow-sm">
+            <div className="bg-card border border-border p-5 rounded-[2rem] shadow-sm relative overflow-hidden group">
+               <div className="absolute top-0 right-0 p-3 opacity-5">
+                  <Clock size={48} />
+               </div>
                <span className="text-[10px] font-black uppercase tracking-widest text-txt3">Prochain Shift</span>
-               <div className="flex items-center gap-3 mt-1">
-                  <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
-                     <Clock size={16} />
+               <div className="flex items-center gap-3 mt-2">
+                  <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
+                     <Clock size={20} />
                   </div>
-                  <span className="font-display font-black text-sm text-txt uppercase">{nextShiftInfo}</span>
+                  <span className="font-display font-black text-lg text-txt uppercase">{nextShiftInfo}</span>
                </div>
             </div>
-            <div className="bg-card border border-border p-4 rounded-2xl shadow-sm">
-               <span className="text-[10px] font-black uppercase tracking-widest text-txt3">Total Heures (Semaine)</span>
-               <div className="flex items-center gap-3 mt-1">
-                  <div className="w-8 h-8 rounded-lg bg-green/10 flex items-center justify-center text-green">
-                     <Calendar size={16} />
+            <div className="bg-card border border-border p-5 rounded-[2rem] shadow-sm relative overflow-hidden group">
+               <div className="absolute top-0 right-0 p-3 opacity-5">
+                  <Calendar size={48} />
+               </div>
+               <span className="text-[10px] font-black uppercase tracking-widest text-txt3">Total Semaine</span>
+               <div className="flex items-center gap-3 mt-2">
+                  <div className="w-10 h-10 rounded-xl bg-green/10 flex items-center justify-center text-green">
+                     <Calendar size={20} />
                   </div>
-                  <span className="font-display font-black text-sm text-txt">{weeklyTotal}h</span>
+                  <span className="font-display font-black text-xl text-txt">{weeklyTotal}h</span>
                </div>
             </div>
          </div>
 
-         <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-lg">
-            <div className="px-4 lg:px-6 py-3 bg-card2 border-b border-border flex items-center justify-between gap-4 group">
-               <div className="flex items-center gap-4">
-                  <div 
-                    className="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl flex items-center justify-center text-white font-display font-black text-lg lg:text-xl shadow-lg ring-2 ring-white/10" 
-                    style={{ backgroundColor: emp.hex }}
-                   >
-                    {emp.name.slice(0, 1)}
-                  </div>
-                  <div className="flex flex-col">
-                    <h2 className="text-xl lg:text-2xl font-display font-black tracking-tight text-txt uppercase leading-none">{emp.name}</h2>
-                    <div className="flex items-center gap-2 mt-1">
-                       <button onClick={() => changeWeek(-1)} className="text-txt3 hover:text-accent transition-colors active:scale-90"><ChevronLeft size={16} /></button>
-                       <span className="font-mono text-[10px] font-bold text-txt3 opacity-60">{format(monday, 'dd MMM')} - {format(addDays(monday, 6), 'dd MMM')}</span>
-                       <button onClick={() => changeWeek(1)} className="text-txt3 hover:text-accent transition-colors active:scale-90"><ChevronRight size={16} /></button>
-                    </div>
-                  </div>
+         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Who is here now? (Staff version) */}
+            <div className="bg-card border border-border rounded-[2rem] p-6">
+               <h3 className="font-display font-black text-sm uppercase mb-4 flex items-center gap-2">
+                  <Users size={16} className="text-accent" />
+                  Mon Équipe Aujourd'hui
+               </h3>
+               <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 no-scrollbar">
+                  {todayData ? employees.map((e, ei) => {
+                     const sh = todayData.shifts[ei];
+                     if(!sh.off && sh.s.some(v => v)) {
+                        return (
+                           <div key={ei} className="flex items-center justify-between p-3 bg-bg rounded-2xl border border-border2">
+                              <div className="flex items-center gap-3">
+                                 <div className="w-8 h-8 rounded-lg" style={{ backgroundColor: e.hex }} />
+                                 <span className={cn("font-bold text-sm", e.name === emp.name && "text-accent")}>{e.name}</span>
+                              </div>
+                              <span className="text-[10px] font-mono font-bold text-txt3">En poste</span>
+                           </div>
+                        )
+                     }
+                     return null;
+                  }) : <p className="text-txt3 text-xs italic">Aucune donnée disponible pour aujourd'hui</p>}
                </div>
             </div>
 
-            <div className="divide-y divide-border/30">
-               {/* Time Header for Employees */}
-               <div className="grid grid-cols-[80px_1fr_40px] lg:grid-cols-[110px_1fr_60px] items-center px-4 lg:px-6 py-2 bg-card2/30 border-b border-border/50">
-                  <div />
-                  <div className="grid grid-cols-11 gap-0.5 lg:gap-1 px-1">
-                     {Array.from({ length: 11 }).map((_, i) => (
-                        <span key={i} className="text-[8px] lg:text-[10px] font-mono font-bold text-txt3 text-center">{i + 10}</span>
-                     ))}
-                  </div>
-                  <div />
+            {/* Quick Summary of Week (Smaller version) */}
+            <div className="bg-card border border-border rounded-[2rem] p-6">
+               <h3 className="font-display font-black text-sm uppercase mb-4 flex items-center gap-2">
+                  <Calendar size={16} className="text-green" />
+                  Cette Semaine
+               </h3>
+               <div className="grid grid-cols-7 gap-1">
+                  {data.map((d, di) => {
+                     const sh = d.shifts[employeeIdx];
+                     const h = sh.s.reduce((a, b) => a + (b || 0), 0);
+                     return (
+                        <div key={di} className="flex flex-col items-center gap-2">
+                           <span className="text-[8px] font-bold text-txt3 uppercase">{d.id}</span>
+                           <div 
+                              className={cn(
+                                 "w-full h-12 rounded-lg border flex items-center justify-center transition-all",
+                                 sh.off ? "bg-bg/20 border-border/30" : h > 0 ? "bg-accent/5 border-accent/20" : "bg-card border-border/10"
+                              )}
+                           >
+                              {sh.off ? (
+                                 <span className="text-[6px] font-black text-txt3 opacity-20">OFF</span>
+                              ) : (
+                                 <span className={cn("text-xs font-mono font-black", h > 0 ? "text-accent" : "text-txt3")}>{h || '-'}</span>
+                              )}
+                           </div>
+                        </div>
+                     );
+                  })}
                </div>
-
-               {data.map((day, di) => {
-                  const sh = day.shifts[employeeIdx!];
-                  const h = sh.s.reduce((a, b: number) => a + (b || 0), 0);
-                  const isToday = isSameDay(addDays(monday, di), new Date());
-                  
-                  return (
-                    <div 
-                      key={di} 
-                      className={cn("grid grid-cols-[80px_1fr_40px] lg:grid-cols-[110px_1fr_60px] items-center p-3 lg:p-6 transition-colors", sh.off ? "bg-bg/20 opacity-70" : isToday ? "bg-accent/5 border-l-2 border-l-accent" : "hover:bg-card2/50")}
-                    >
-                        <div className="flex flex-col gap-0.5 overflow-hidden pr-2">
-                           <span className={cn("text-[10px] lg:text-sm font-display font-black uppercase tracking-widest truncate", isToday ? "text-accent" : "text-txt")}>{day.id}</span>
-                           <span className="text-[8px] lg:text-[10px] text-txt3 font-mono opacity-60">{day.date}</span>
-                        </div>
-
-                        <div className="min-w-0">
-                           {sh.off ? (
-                              <div className="h-8 lg:h-12 bg-bg/40 rounded-lg flex items-center justify-center border border-border/50 border-dashed">
-                                 <span className="text-[8px] lg:text-xs font-bold uppercase tracking-[0.2em] text-txt3 opacity-40">Repos</span>
-                              </div>
-                           ) : h > 0 ? (
-                              <div className="flex flex-col gap-2">
-                                 <div className="grid grid-cols-11 gap-0.5 lg:gap-1.5 h-8 lg:h-12">
-                                    {sh.s.map((v, i) => (
-                                       <div 
-                                          key={i} 
-                                          className={cn("rounded-[3px] lg:rounded-xl transition-all", v ? "shadow-md border border-white/10" : "bg-bg/40 border border-border/30")}
-                                          style={{ backgroundColor: v ? emp.hex : undefined }}
-                                       />
-                                    ))}
-                                 </div>
-                              </div>
-                           ) : (
-                              <div className="h-8 lg:h-12 rounded-lg flex items-center justify-center border border-border/30 border-dashed">
-                                 <span className="text-[8px] lg:text-xs text-txt3 font-mono opacity-30">Non planifié</span>
-                              </div>
-                           )}
-                        </div>
-
-                        <div className="text-right flex flex-col items-end">
-                           <span className={cn("text-xs lg:text-xl font-mono font-black", sh.off ? "text-txt3 opacity-40" : "text-accent")}>{sh.off ? '—' : h + 'h'}</span>
-                        </div>
-                     </div>
-                  );
-               })}
+               <div className="mt-6">
+                  <button onClick={() => setShowTeamWeekPopup(true)} className="w-full bg-accent/10 border border-accent/20 text-accent py-3 rounded-2xl font-display font-black text-[10px] hover:bg-accent/20 transition-all flex items-center justify-center gap-2">
+                     <Calendar size={14} />
+                     PLANNING COMPLET ÉQUIPE
+                  </button>
+               </div>
             </div>
          </div>
 
-         <div className="flex flex-col sm:flex-row gap-2 lg:gap-4 px-2 lg:px-0">
-            <button onClick={() => setShowTeamWeekPopup(true)} className="flex-1 bg-accent/10 border border-accent/20 text-accent py-3 lg:py-4 rounded-2xl font-display font-bold text-[10px] lg:text-xs hover:bg-accent/20 transition-all flex items-center justify-center gap-2">
-               <Calendar size={14} />
-               Planning Complet Équipe
-            </button>
-            <button onClick={logout} className="flex-1 bg-card border border-border py-3 lg:py-4 rounded-2xl font-display font-bold text-[10px] lg:text-xs text-red hover:bg-red-l transition-all">Déconnexion</button>
+         <div className="flex gap-4">
+            <button onClick={logout} className="flex-1 bg-card border border-border py-4 rounded-2xl font-display font-black text-xs text-red hover:bg-red hover:text-white transition-all shadow-sm">DÉCONNEXION</button>
          </div>
        </motion.div>
     );
   };
 
   const BottomNav = () => (
-    <nav className="fixed bottom-0 left-0 right-0 bg-surf border-t border-border flex justify-around p-2 pb-[env(safe-area-inset-bottom)] z-[60] shadow-lg overflow-x-auto">
+    <nav className="fixed bottom-0 left-0 right-0 bg-surf border-t border-border flex justify-around p-2 pb-[env(safe-area-inset-bottom)] z-[70] shadow-lg overflow-x-auto">
       {[
         { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
         { id: 'day', label: 'Jour', icon: Clock },
         { id: 'week', label: 'Semaine', icon: Calendar },
-        { id: 'gantt', label: 'Gantt', icon: Users }
+        { id: 'menu', label: 'Menu', icon: MoreVertical }
       ].map(item => (
         <button
           key={item.id}
-          onClick={() => setView(item.id as any)}
+          onClick={() => {
+            if(item.id === 'menu') setMenuModal(true);
+            else setView(item.id as any);
+          }}
           className={cn(
             "flex flex-col items-center gap-1 p-2 rounded-lg transition-colors flex-shrink-0",
             view === item.id ? "text-accent" : "text-txt3"
@@ -1084,7 +1146,30 @@ export default function App() {
                 >
                   <CheckCircle2 size={12} />
                   <span>Sauvegardé</span>
-                </motion.div>
+                   {/* Stats Bar */}
+                 <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-6">
+                    {[
+                      { label: 'Total Semaine', value: `${grandTotal}h`, sub: 'Heures planifiées', icon: Calendar, color: 'text-accent' },
+                      { label: 'Moyenne / Jour', value: `${avgPerDay}h`, sub: 'Par journée', icon: Clock, color: 'text-txt' },
+                      { label: 'Effectif', value: employees.length, sub: 'Agents actifs', icon: Users, color: 'text-txt' },
+                      { label: 'Jours Repos', value: offDays, sub: 'Temps libre', icon: Moon, color: 'text-txt' }
+                    ].map((stat, i) => (
+                      <div key={i} className="bg-card border border-border px-5 py-4 lg:py-6 rounded-2xl shadow-sm relative overflow-hidden group transition-all duration-300 hover:border-accent/40">
+                        <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                          <stat.icon size={48} />
+                        </div>
+                        <p className="text-[10px] font-sans font-bold text-txt3 uppercase tracking-[0.1em] mb-1.5">{stat.label}</p>
+                        <div className="flex items-baseline gap-1">
+                          <span className={cn("text-2xl lg:text-3xl font-bold tracking-tighter", stat.color)}>{stat.value}</span>
+                        </div>
+                        <p className="text-[9px] text-txt3 font-mono mt-2 flex items-center gap-1.5">
+                          <span className="w-1 h-1 rounded-full bg-accent animate-pulse" />
+                          {stat.sub}
+                        </p>
+                      </div>
+                    ))}
+                 </div>
+              </motion.div>
               )}
             </AnimatePresence>
 
@@ -1124,10 +1209,10 @@ export default function App() {
       <BottomNav />
 
       {/* --- Main Content --- */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-1 lg:p-8 flex flex-col min-h-0 space-y-1 lg:space-y-8 pb-24">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-1 lg:p-8 flex flex-col min-h-0 space-y-1 lg:space-y-8 pb-32">
         
         {/* Header Stats bar */}
-        <div className={cn("flex-shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-6", view === 'day' && "hidden sm:grid")}>
+        <div className={cn("flex-shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-6", (view === 'day' || view === 'week') && "hidden sm:grid")}>
           {[
             { label: 'Total Semaine', value: `${grandTotal}h`, sub: 'Heures planifiées', icon: Calendar, color: 'text-accent' },
             { label: 'Moyenne / Jour', value: `${avgPerDay}h`, sub: 'Par journée', icon: Clock, color: 'text-txt' },
@@ -1245,7 +1330,7 @@ export default function App() {
             >
                {/* Day Card */}
               {data[activeDay] && (
-                <div className="flex-1 min-h-0 bg-card border border-border rounded-2xl lg:rounded-[2rem] shadow-[0_8px_40px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col relative">
+                <div className="flex-1 min-h-0 bg-card sm:border sm:border-border sm:rounded-3xl lg:rounded-[3rem] shadow-xl overflow-hidden flex flex-col relative">
                   <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.02)_0%,transparent_100%)] pointer-events-none" />
                   
                    <div className="flex-shrink-0 p-4 lg:p-10 bg-surf/80 backdrop-blur-md border-b border-border flex items-center justify-between z-10">
@@ -1265,7 +1350,7 @@ export default function App() {
                           <div className="hidden lg:block w-32 h-2.5 bg-border/40 rounded-full overflow-hidden">
                              <div 
                                className="h-full bg-accent transition-all duration-700 ease-out shadow-[0_0_15px_rgba(230,57,70,0.3)]" 
-                               style={{ width: `${Math.min(100, (data[activeDay].shifts.reduce((a, sh) => a + (sh.off ? 0 : sh.s.reduce((va, vb) => va + vb, 0)), 0) / (employees.length * 11)) * 100)}%` }}
+                               style={{ width: `${Math.min(100, (data[activeDay].shifts.reduce((a, sh) => a + (sh.off ? 0 : sh.s.reduce((va, vb) => va + vb, 0)), 0) / (employees.length * 12)) * 100)}%` }}
                              />
                           </div>
                           <span className="text-3xl lg:text-6xl font-display font-black text-accent tracking-tighter leading-none">
@@ -1276,13 +1361,13 @@ export default function App() {
                      </div>
                    </div>
 
-                   <div className="flex-1 min-h-0 min-w-0 overflow-x-auto no-scrollbar bg-card2/20">
-                      <div className="min-w-[480px] lg:min-w-[900px] h-full flex flex-col pt-4 lg:pt-8 px-4 lg:px-10 pb-20">
+                    <div className="flex-1 min-h-0 w-full overflow-y-auto no-scrollbar bg-card2/20">
+                      <div className="w-full flex flex-col pt-4 lg:pt-8 px-2 lg:px-10 pb-48">
                         {/* Time Ruler */}
-                        <div className="flex-shrink-0 flex items-center px-4 lg:px-8 py-3 lg:py-6 bg-surf border border-border shadow-sm rounded-xl lg:rounded-2xl mb-4 lg:mb-8 sticky top-0 z-20">
-                          <div className="w-[80px] lg:w-[150px] shrink-0 text-[10px] lg:text-xs font-display font-black text-txt3 tracking-[0.15em] uppercase mr-2 lg:mr-4">Équipe</div>
-                          <div className="flex-1 grid grid-cols-11 gap-1">
-                            {Array.from({ length: 11 }).map((_, i) => {
+                        <div className="flex-shrink-0 flex items-center px-2 lg:px-8 py-3 lg:py-6 bg-surf border border-border shadow-sm rounded-xl lg:rounded-2xl mb-4 lg:mb-8 sticky top-0 z-20">
+                          <div className="w-[65px] lg:w-[150px] shrink-0 text-[8px] lg:text-xs font-display font-black text-txt3 tracking-[0.1em] uppercase mr-1.5 lg:mr-4">Équipe</div>
+                          <div className="flex-1 grid grid-cols-12 gap-0.5 lg:gap-1">
+                            {Array.from({ length: 12 }).map((_, i) => {
                                const hour = i + 10;
                                const isNow = new Date().getHours() === hour;
                                return (
@@ -1301,7 +1386,7 @@ export default function App() {
                                );
                             })}
                           </div>
-                          <div className="w-[35px] lg:w-[60px] shrink-0 text-right text-[10px] lg:text-xs font-display font-black text-txt3 tracking-[0.15em] uppercase ml-2 lg:ml-4">Total</div>
+                          <div className="w-[30px] lg:w-[60px] shrink-0 text-right text-[8px] lg:text-xs font-display font-black text-txt3 tracking-[0.1em] uppercase ml-1.5 lg:mr-4">Total</div>
                         </div>
 
                         <div className="bg-surf border border-border rounded-xl lg:rounded-[2.5rem] shadow-sm divide-y divide-border/30 overflow-hidden">
@@ -1331,10 +1416,101 @@ export default function App() {
                initial={{ opacity: 0, y: 10 }}
                animate={{ opacity: 1, y: 0 }}
                exit={{ opacity: 0 }}
-               className="bg-card border border-border rounded-3xl p-4 lg:p-8 shadow-lg flex flex-col"
+               className="bg-card border border-border rounded-3xl p-4 lg:p-8 shadow-lg flex flex-col pb-32"
              >
-                {/* Weekly Goal Indicator */}
-                <div className="mb-6 lg:mb-8 flex items-center justify-between pb-4 lg:pb-6 border-b border-border">
+                {/* Main Content Area */}
+                <div className="space-y-6">
+                  {data.map((day) => {
+                    const dayTotalHours = day.shifts.reduce((acc, sh) => acc + (sh.off ? 0 : sh.s.reduce((a, b) => a + (b || 0), 0)), 0);
+
+                    return (
+                      <div key={day.id} className="bg-card border border-border rounded-[2rem] overflow-hidden shadow-sm flex flex-col">
+                        {/* Day Card Header */}
+                        <div className="flex items-center justify-between px-6 py-4 bg-surf/30 border-b border-border">
+                          <h3 className="font-display font-black text-xl lg:text-2xl tracking-tight uppercase text-txt">{day.full}</h3>
+                          <div className="flex items-center gap-4 text-txt3 font-mono font-bold text-sm lg:text-base">
+                            <span className="opacity-60">{day.date}</span>
+                            <span className="text-accent">{dayTotalHours}h</span>
+                          </div>
+                        </div>
+
+                        {/* Day Card Body / Timeline */}
+                        <div className="p-4 lg:p-6 pb-2">
+                           {/* Timeline Header */}
+                           <div className="flex items-center mb-4">
+                              <div className="w-10 lg:w-16 shrink-0 text-center text-[10px] uppercase font-bold text-txt3 tracking-widest">h</div>
+                              <div className="flex-1 grid grid-cols-12 gap-0.5 lg:gap-1">
+                                {Array.from({ length: 12 }).map((_, i) => {
+                                   const hour = i + 10;
+                                   return (
+                                     <div key={i} className="text-left text-[8px] lg:text-[10px] font-mono opacity-40 uppercase text-txt3 pl-1">
+                                       {hour === 12 ? '12pm' : hour > 12 ? `${hour - 12}pm` : `${hour}am`}
+                                     </div>
+                                   );
+                                })}
+                              </div>
+                              <div className="w-10 lg:w-14 shrink-0"></div>
+                           </div>
+
+                           {/* Employee Rows */}
+                           <div className="space-y-3">
+                             {employees.map((emp, ei) => {
+                               const shift = day.shifts[ei];
+                               const hours = shift.s.reduce((a, b) => a + (b || 0), 0);
+                               
+                               return (
+                                 <div key={emp.name} className="flex items-center h-6 lg:h-8">
+                                    <div className="w-10 lg:w-16 shrink-0 flex items-center justify-start lg:justify-center font-display font-black text-sm lg:text-base" style={{ color: emp.hex }}>
+                                      {emp.name.slice(0, 2).toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 h-full min-w-0">
+                                       {shift.off ? (
+                                         <div className="w-full h-full flex items-center justify-center">
+                                           <span className="text-[10px] font-mono tracking-[0.2em] text-txt3 opacity-40 uppercase font-bold">DAY OFF</span>
+                                         </div>
+                                       ) : (
+                                         <div className="w-full h-full grid grid-cols-12 gap-1 lg:gap-1.5">
+                                           {shift.s.map((v, i) => (
+                                              <div 
+                                                key={i} 
+                                                className="h-full rounded-md shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-all"
+                                                style={{ backgroundColor: v ? emp.hex : 'var(--border2)', opacity: v ? 0.9 : 0.4 }}
+                                              />
+                                           ))}
+                                         </div>
+                                       )}
+                                    </div>
+                                    <div className="w-10 lg:w-14 shrink-0 text-right pr-2 font-mono font-black text-sm lg:text-base opacity-90" style={{ color: shift.off ? 'var(--txt3)' : emp.hex }}>
+                                      {shift.off ? '—' : `${hours}h`}
+                                    </div>
+                                 </div>
+                               );
+                             })}
+                           </div>
+                        </div>
+
+                        {/* Day Card Footer */}
+                        <div className="flex items-center justify-between px-6 py-4 bg-accent/5 border-t border-accent/10 mt-2 text-accent">
+                          <span className="font-display font-black text-sm uppercase">Total</span>
+                          <span className="font-mono font-black text-base">{dayTotalHours}h</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Legend */}
+                <div className="my-8 flex flex-wrap items-center gap-6 p-6 bg-card2/50 rounded-2xl border border-dashed border-border">
+                  {employees.map(e => (
+                    <div key={e.name} className="flex items-center gap-2">
+                       <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: e.hex }} />
+                       <span className="text-[10px] font-display font-bold uppercase tracking-widest text-txt2">{e.name}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Weekly Goal Indicator (Moved to bottom) */}
+                <div className="mt-auto flex items-center justify-between pt-6 border-t border-border">
                   <div>
                     <h3 className="font-display font-black text-base lg:text-lg tracking-tight uppercase">Récapitulatif Hebdomadaire</h3>
                     <p className="text-[10px] lg:text-xs text-txt3">Aperçu global de la distribution des heures</p>
@@ -1346,7 +1522,7 @@ export default function App() {
                 </div>
 
                 {grandTotal === 0 && isEdit && (
-                   <div className="mb-8 p-12 flex flex-col items-center justify-center text-center space-y-4 bg-bg/20 border-2 border-dashed border-border rounded-3xl">
+                   <div className="mt-8 p-12 flex flex-col items-center justify-center text-center space-y-4 bg-bg/20 border-2 border-dashed border-border rounded-3xl">
                       <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center text-accent">
                         <Copy size={32} />
                       </div>
@@ -1363,193 +1539,11 @@ export default function App() {
                       </button>
                    </div>
                 )}
-
-                {/* Mobile View Card List */}
-                <div className="lg:hidden space-y-4">
-                  {employees.map((emp, ei) => {
-                    const weeklyTotal = data.reduce((acc, d) => acc + (d.shifts[ei].off ? 0 : d.shifts[ei].s.reduce((a, b) => a + (b || 0), 0)), 0);
-                    return (
-                      <div key={emp.name} className="bg-bg/30 border border-border rounded-2xl p-4 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center font-display font-black text-[10px] border border-border" style={{ backgroundColor: emp.hex + '10', color: emp.hex }}>
-                              {emp.name.slice(0, 2)}
-                            </div>
-                            <div>
-                               <p className="font-display font-bold text-sm tracking-tight leading-none">{emp.name}</p>
-                               <p className="text-[8px] text-txt3 font-mono opacity-60 mt-1 uppercase">Poste Actif</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                             <div className="px-2 py-1 bg-accent/10 border border-accent/20 rounded-lg">
-                                <span className="text-sm font-mono font-black text-accent">{weeklyTotal}h</span>
-                             </div>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-7 gap-1.5 h-20">
-                           {data.map((d, di) => {
-                              const sh = d.shifts[ei];
-                              const h = sh.s.reduce((a, b) => a + (b || 0), 0);
-                              return (
-                                 <div key={di} className="flex flex-col gap-1.5">
-                                    <div className="text-[7px] font-mono font-bold text-txt3 uppercase text-center leading-none">{d.id}</div>
-                                    <div className="flex-1 min-h-0 bg-surf border border-border/50 rounded-md overflow-hidden flex flex-col gap-[0.5px] p-[0.5px]">
-                                       {sh.off ? (
-                                          <div className="flex-1 flex items-center justify-center opacity-10">
-                                            <div className="w-1 h-1 rounded-full bg-txt3" />
-                                          </div>
-                                       ) : (
-                                          sh.s.map((v, i) => (
-                                             <div 
-                                                key={i} 
-                                                className="flex-1 rounded-[1px]" 
-                                                style={{ backgroundColor: v ? emp.hex : undefined }} 
-                                             />
-                                          ))
-                                       )}
-                                    </div>
-                                    <div className={cn("text-[7px] font-mono font-bold text-center leading-none", h > 0 ? "text-accent" : "text-txt3 opacity-30")}>{h || '—'}</div>
-                                 </div>
-                              );
-                           })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Desktop Table View */}
-                <div className="hidden lg:block overflow-x-auto no-scrollbar">
-                   <table className="w-full min-w-[900px] border-separate border-spacing-0">
-                      <thead>
-                        <tr>
-                          <th className="text-left py-4 font-display font-bold text-xs text-txt3 tracking-widest uppercase pb-6 border-b border-border">Agent</th>
-                          {data.map(d => (
-                            <th key={d.id} className="py-4 font-display font-bold text-xs text-txt3 tracking-widest uppercase pb-6 border-b border-border">
-                                {d.id}<br/>
-                                <span className="font-mono text-[9px] opacity-60 normal-case">{d.date}</span>
-                            </th>
-                          ))}
-                          <th className="text-right py-4 font-display font-bold text-xs text-txt3 tracking-widest uppercase pb-6 border-b border-border">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/30">
-                        {employees.map((emp, ei) => {
-                          const weeklyTotal = data.reduce((acc, d) => acc + (d.shifts[ei].off ? 0 : d.shifts[ei].s.reduce((a, b) => a + (b || 0), 0)), 0);
-                          return (
-                            <tr key={emp.name} className="hover:bg-bg/40 transition-colors group">
-                              <td className="py-5">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-xl flex items-center justify-center font-display font-bold text-[10px] shadow-sm transform group-hover:scale-110 transition-transform" style={{ backgroundColor: emp.hex + '15', color: emp.hex, border: `1px solid ${emp.hex}30` }}>
-                                    {emp.name.slice(0, 2)}
-                                  </div>
-                                  <span className="font-display font-bold text-sm tracking-tight">{emp.name}</span>
-                                </div>
-                              </td>
-                              {data.map((d, di) => {
-                                const sh = d.shifts[ei];
-                                const h = sh.s.reduce((a, b) => a + (b || 0), 0);
-                                return (
-                                  <td key={di} className="text-center py-5 px-1">
-                                    {sh.off ? (
-                                      <span className="text-[10px] text-txt3 font-mono font-bold opacity-30">OFF</span>
-                                    ) : (
-                                      <div className="flex flex-col items-center gap-2">
-                                        <span className="text-sm font-mono font-black text-txt">{h || '-'}</span>
-                                        <div className="grid grid-cols-11 gap-px w-[66px] h-3 bg-surf border border-border/40 rounded-[2px] p-[1px]">
-                                          {sh.s.map((v, i) => (
-                                             <div key={i} className="h-full rounded-[1px]" style={{ backgroundColor: v ? emp.hex : undefined }} />
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </td>
-                                )
-                              })}
-                              <td className="text-right py-5 pr-1">
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-xl text-accent font-mono font-black text-base shadow-inner">
-                                  {weeklyTotal}h
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                   </table>
-                </div>
-
-                {/* Legend */}
-                <div className="mt-8 flex flex-wrap items-center gap-6 p-6 bg-card2/50 rounded-2xl border border-dashed border-border">
-                  {employees.map(e => (
-                    <div key={e.name} className="flex items-center gap-2">
-                       <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: e.hex }} />
-                       <span className="text-[10px] font-display font-bold uppercase tracking-widest text-txt2">{e.name}</span>
-                    </div>
-                  ))}
-                </div>
              </motion.div>
           )}
 
-          {view === 'gantt' && (
-             <motion.div 
-               key="gantt"
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               exit={{ opacity: 0 }}
-               className="bg-card border border-border rounded-3xl p-6 shadow-lg"
-             >
-                <div className="flex items-center justify-between mb-8">
-                   <h3 className="font-display font-black text-lg tracking-tight uppercase">Vue Gantt</h3>
-                   <p className="text-xs text-txt3">Distribution temporelle des shifts</p>
-                </div>
-                
-                <div className="overflow-x-auto no-scrollbar">
-                  <div className="min-w-[1000px] border border-border rounded-2xl overflow-hidden shadow-inner">
-                     {/* Gantt Header */}
-                     <div className="grid grid-cols-[120px_repeat(7,1fr)_100px] bg-card2 border-b border-border">
-                        <div className="p-4 text-[10px] font-display font-bold text-txt3 uppercase tracking-widest border-r border-border">Agent</div>
-                        {data.map(d => (
-                           <div key={d.id} className="p-4 text-center border-r border-border last:border-r-0">
-                              <span className="block text-[10px] font-display font-bold uppercase text-txt3 opacity-60 leading-none">{d.id}</span>
-                              <span className="text-xs font-mono font-black text-txt leading-none mt-1">{d.date}</span>
-                           </div>
-                        ))}
-                        <div className="p-4 text-right text-[10px] font-display font-bold text-txt3 uppercase tracking-widest">Total</div>
-                     </div>
 
-                     {/* Gantt Body */}
-                     <div className="divide-y divide-border/30">
-                        {employees.map((emp, ei) => {
-                           const weeklyTotal = data.reduce((acc, d) => acc + (d.shifts[ei].off ? 0 : d.shifts[ei].s.reduce((a, b: number) => a + (b || 0), 0)), 0);
-                           return (
-                              <div key={emp.name} className="grid grid-cols-[120px_repeat(7,1fr)_100px] hover:bg-bg/20 transition-colors">
-                                 <div className="p-4 border-r border-border flex items-center gap-3">
-                                    <div className="w-6 h-6 rounded-lg bg-accent/10 flex items-center justify-center font-display font-bold text-[10px]" style={{ color: emp.hex }}>{emp.name.slice(0, 2)}</div>
-                                    <span className="font-display font-bold text-xs tracking-tight truncate">{emp.name}</span>
-                                 </div>
-                                 {data.map((d, di) => (
-                                   <GanttCell 
-                                     key={di} 
-                                     di={di} 
-                                     ei={ei} 
-                                     emp={emp} 
-                                     shift={d.shifts[ei]} 
-                                     isEdit={isEdit} 
-                                   />
-                                 ))}
-                                 <div className="p-4 text-right flex items-center justify-end">
-                                    <span className="font-mono font-black text-xs text-accent">{weeklyTotal}h</span>
-                                 </div>
-                               </div>
-                           );
-                        })}
-                     </div>
-                  </div>
-                </div>
-             </motion.div>
-          )}
-        </AnimatePresence>
+         </AnimatePresence>
 
 
       </main>
@@ -1797,19 +1791,93 @@ export default function App() {
         </Modal>
       )}
 
+      {/* --- Menu Modal --- */}
+      {menuModal && <Modal title="Menu" onClose={() => setMenuModal(false)}>
+        <div className="p-4 space-y-4">
+          <button className="w-full bg-card border border-border py-4 rounded-2xl font-display font-bold">Changement de ligne</button>
+          <button onClick={() => { setMenuModal(false); setPinModal({ open: true, role: 'employee' }); }} className="w-full bg-card border border-border py-4 rounded-2xl font-display font-bold">Pin</button>
+          <button onClick={() => { setMenuModal(false); setQrModal(true); }} className="w-full bg-card border border-border py-4 rounded-2xl font-display font-bold">Export PDF</button>
+          <button className="w-full bg-card border border-border py-4 rounded-2xl font-display font-bold">Export Image</button>
+        </div>
+      </Modal>}
+      
       {/* --- QR Modal --- */}
-      {qrModal && <Modal title="Partager" onClose={() => setQrModal(false)}>
-        <div className="flex flex-col items-center gap-6 p-4">
-          <div className="bg-white p-4 rounded-3xl border border-border shadow-inner">
-            <QRCodeSVG value={JSON.stringify(data)} size={200} level="M" />
+      {qrModal && <Modal title="Partager / Export" onClose={() => setQrModal(false)}>
+        <div className="flex flex-col gap-6 p-4">
+          <div className="flex flex-col items-center gap-2">
+            <div className="bg-white p-4 rounded-3xl border border-border shadow-inner">
+              <QRCodeSVG value={JSON.stringify(data)} size={150} level="M" />
+            </div>
+            <p className="text-xs text-txt3 text-center">Sync Planning</p>
           </div>
-          <p className="text-xs text-txt3 text-center leading-relaxed">
-            Scannez ce code pour synchroniser ce planning sur un autre appareil.
-          </p>
-          <button className="flex items-center gap-2 w-full justify-center bg-accent text-white py-4 rounded-2xl font-display font-black text-sm hover:scale-[1.02] active:scale-95 transition-all">
-            <Download size={18} />
-            Télécharger l'image
-          </button>
+
+          <div className="border-t pt-4">
+            <h4 className="font-bold text-sm mb-4">Export PDF</h4>
+            
+            <div className="mb-4">
+              <label className="text-xs font-bold text-txt3 mb-1 block">Layout</label>
+              <select 
+                value={pdfOptions.layout}
+                onChange={(e) => setPdfOptions(prev => ({...prev, layout: e.target.value}))}
+                className="w-full p-2 border rounded-lg text-sm bg-bg">
+                <option value="weekly">Weekly Plan</option>
+                <option value="daily">Daily Detail</option>
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-xs font-bold text-txt3 mb-1 block">Date Range</label>
+              <select 
+                value={pdfOptions.dateRange}
+                onChange={(e) => setPdfOptions(prev => ({...prev, dateRange: e.target.value}))}
+                className="w-full p-2 border rounded-lg text-sm bg-bg">
+                <option value="current">Current Week</option>
+                <option value="last">Last Week</option>
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-xs font-bold text-txt3 mb-1 block">Employees</label>
+              <div className="flex flex-wrap gap-2 text-xs">
+                 <button 
+                  onClick={() => setPdfOptions(prev => ({...prev, selectedEmployees: []}))}
+                  className={cn("px-2 py-1 rounded-full", pdfOptions.selectedEmployees.length === 0 ? "bg-accent text-white" : "bg-bg border border-border")}>All</button>
+                 {employees.map(e => (
+                   <button 
+                    key={e.id} 
+                    onClick={() => setPdfOptions(prev => {
+                      const selected = prev.selectedEmployees.includes(e.id) ? 
+                        prev.selectedEmployees.filter(id => id !== e.id) : 
+                        [...prev.selectedEmployees, e.id];
+                      return {...prev, selectedEmployees: selected};
+                    })}
+                    className={cn("px-2 py-1 rounded-full", pdfOptions.selectedEmployees.includes(e.id) ? "bg-accent text-white" : "bg-bg border border-border")}>{e.name}</button>
+                 ))}
+              </div>
+            </div>
+
+            <button onClick={() => {
+              const doc = new jsPDF();
+              doc.setFontSize(18);
+              doc.text(`Planning Export - ${pdfOptions.layout}`, 10, 20);
+              doc.setFontSize(12);
+              doc.text(`Date Range: ${pdfOptions.dateRange}`, 10, 30);
+              
+              const emps = pdfOptions.selectedEmployees.length === 0 ? employees : employees.filter(e => pdfOptions.selectedEmployees.includes(e.id));
+              
+              let y = 40;
+              emps.forEach(emp => {
+                doc.text(`Employee: ${emp.name}`, 10, y);
+                y += 10;
+                y += 5;
+              });
+
+              doc.save(`planning_${pdfOptions.layout}_${pdfOptions.dateRange}.pdf`);
+            }} className="flex items-center gap-2 w-full justify-center bg-accent text-white py-4 rounded-2xl font-display font-black text-sm hover:scale-[1.02] active:scale-95 transition-all">
+              <Download size={18} />
+              Export PDF
+            </button>
+          </div>
         </div>
       </Modal>}
       </div>
