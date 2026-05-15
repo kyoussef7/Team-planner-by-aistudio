@@ -38,6 +38,10 @@ import {
   MessageCircle,
   Image as ImageIcon,
   Send,
+  RefreshCw,
+  UserCircle,
+  FileText,
+  Settings,
 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
@@ -318,7 +322,6 @@ export default function App() {
     role: AccessRole;
   } | null>(null);
   const [menuModal, setMenuModal] = useState(false);
-  const [settingsModal, setSettingsModal] = useState(false);
   const [empModal, setEmpModal] = useState(false);
   const [qrModal, setQrModal] = useState(false);
   const [pdfOptions, setPdfOptions] = useState({
@@ -1042,10 +1045,29 @@ export default function App() {
             Choisissez votre mode d'accès pour continuer.
           </p>
 
-          <div className="grid grid-cols-2 gap-4">
-            <button
+          <motion.div
+            className="grid grid-cols-2 gap-4"
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.2,
+                },
+              },
+            }}
+            initial="hidden"
+            animate="show"
+          >
+            <motion.button
+              variants={{
+                hidden: { opacity: 0, scale: 0.8 },
+                show: { opacity: 1, scale: 1 },
+              }}
+              whileHover={{ y: -5 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => handleRoleSelect("manager")}
-              className="flex flex-col items-center gap-3 p-4 border border-border2 rounded-xl hover:border-accent hover:-translate-y-1 transition-all active:scale-95 group"
+              className="flex flex-col items-center gap-3 p-4 border border-border2 rounded-xl hover:border-accent transition-all group"
             >
               <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-colors">
                 <Shield size={20} />
@@ -1054,17 +1076,23 @@ export default function App() {
               <span className="text-[8px] text-txt3 font-bold uppercase tracking-widest -mt-1 opacity-60">
                 Via Google
               </span>
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              variants={{
+                hidden: { opacity: 0, scale: 0.8 },
+                show: { opacity: 1, scale: 1 },
+              }}
+              whileHover={{ y: -5 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => handleRoleSelect("employee")}
-              className="flex flex-col items-center gap-3 p-4 border border-border2 rounded-xl hover:border-green hover:-translate-y-1 transition-all active:scale-95 group"
+              className="flex flex-col items-center gap-3 p-4 border border-border2 rounded-xl hover:border-green transition-all group"
             >
               <div className="w-10 h-10 rounded-full bg-green/10 flex items-center justify-center text-green group-hover:bg-green group-hover:text-white transition-colors">
                 <User size={20} />
               </div>
               <span className="font-display font-bold text-sm">Employee</span>
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
 
           <div className="mt-8 flex flex-col items-center gap-3 border-t border-border/40 pt-6">
             <span className="text-[10px] text-txt3 uppercase tracking-widest font-semibold">
@@ -1362,7 +1390,11 @@ export default function App() {
   };
 
   const BottomNav = () => (
-    <nav className="fixed bottom-0 left-0 right-0 bg-surf border-t border-border flex justify-around p-2 pb-[env(safe-area-inset-bottom)] z-[70] shadow-lg overflow-x-auto">
+    <motion.nav
+      initial={{ y: 100 }}
+      animate={{ y: 0 }}
+      className="fixed bottom-4 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[400px] bg-surf/80 backdrop-blur-xl border border-border rounded-2xl shadow-2xl flex justify-around p-1.5 sm:p-2 z-[70]"
+    >
       {[
         { id: "dashboard", label: "Home", icon: LayoutDashboard },
         { id: "day", label: "Jour", icon: Clock },
@@ -1377,58 +1409,18 @@ export default function App() {
             else setView(item.id as any);
           }}
           className={cn(
-            "flex flex-col items-center gap-1 p-2 rounded-lg transition-colors flex-shrink-0 relative",
-            view === item.id ? "text-accent" : "text-txt3",
+            "flex flex-col items-center gap-1 p-3 rounded-xl transition-all duration-300 flex-shrink-0 relative active:scale-90",
+            view === item.id ? "text-accent bg-accent/10" : "text-txt3 hover:text-accent hover:bg-accent/5",
           )}
         >
-          <item.icon size={20} />
+          <item.icon size={22} />
           <span className="text-[10px] font-bold uppercase">{item.label}</span>
           {item.hasBadge && (
-            <span className="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full border border-surf" />
+            <span className="absolute top-2 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-surf" />
           )}
         </button>
       ))}
-      {isEdit && (
-        <>
-          <button
-            onClick={copyPrevWeek}
-            className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors text-txt3 flex-shrink-0"
-          >
-            <Copy size={20} />
-            <span className="text-[10px] font-bold uppercase">Init.</span>
-          </button>
-          <button
-            onClick={() => setEmpModal(true)}
-            className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors text-txt3 flex-shrink-0"
-          >
-            <Users size={20} />
-            <span className="text-[10px] font-bold uppercase">Équipe</span>
-          </button>
-          <button
-            onClick={() => setSettingsModal(true)}
-            className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors text-txt3 flex-shrink-0"
-          >
-            <MoreHorizontal size={20} />
-            <span className="text-[10px] font-bold uppercase">Options</span>
-          </button>
-          <button
-            onClick={handleUndo}
-            disabled={undoStack.length === 0}
-            className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors text-txt3 flex-shrink-0 disabled:opacity-30"
-          >
-            <RotateCcw size={20} />
-            <span className="text-[10px] font-bold uppercase">Undo</span>
-          </button>
-          <button
-            onClick={() => setQrModal(true)}
-            className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors text-txt3 flex-shrink-0"
-          >
-            <QrCode size={20} />
-            <span className="text-[10px] font-bold uppercase">Partager</span>
-          </button>
-        </>
-      )}
-    </nav>
+    </motion.nav>
   );
 
   return (
@@ -1448,7 +1440,7 @@ export default function App() {
             </div>
             <div className="hidden sm:block border-l border-border h-6 mx-1 lg:mx-2" />
             <div className="truncate">
-              <h1 className="font-display font-bold text-sm lg:text-base leading-none truncate">
+              <h1 className="font-display font-bold text-sm lg:text-base leading-none truncate" aria-level="1">
                 LCK TARGA
               </h1>
               <p className="text-[10px] lg:text-xs text-txt3 font-mono mt-1">
@@ -1613,7 +1605,7 @@ export default function App() {
       <BottomNav />
 
       {/* --- Main Content --- */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-1 lg:p-8 flex flex-col min-h-0 space-y-1 lg:space-y-8 pb-20 lg:pb-8 relative z-0">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 lg:p-8 flex flex-col min-h-0 space-y-4 lg:space-y-8 pb-32 lg:pb-12 relative z-0">
         {view !== "chat" && (
           <div
             className={cn(
@@ -2437,114 +2429,127 @@ export default function App() {
         </Modal>
       )}
 
-      {/* --- Settings Modal --- */}
-      {settingsModal && (
-        <Modal
-          title="Paramètres & Sécurité"
-          onClose={() => setSettingsModal(false)}
-        >
-          <div className="p-6 space-y-8">
-            <section className="space-y-4">
-              <h3 className="text-[10px] text-txt3 uppercase font-black tracking-widest flex items-center gap-2">
-                <Lock size={12} />
-                Sécurité
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-txt3 font-bold px-1">
-                    PIN Manager
-                  </label>
-                  <input
-                    type="password"
-                    value={managerPinInput}
-                    onChange={(e) => updatePin("manager", e.target.value)}
-                    placeholder="••••"
-                    className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-accent"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-txt3 font-bold px-1">
-                    PIN Employé
-                  </label>
-                  <input
-                    type="password"
-                    value={employeePinInput}
-                    onChange={(e) => updatePin("employee", e.target.value)}
-                    placeholder="••••"
-                    className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-green"
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section className="space-y-4">
-              <h3 className="text-[10px] text-txt3 uppercase font-black tracking-widest flex items-center gap-2">
-                <Monitor size={12} />
-                Apparence
-              </h3>
-              <div className="flex gap-2">
-                {["light", "dark", "simple"].map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => toggleTheme(t as any)}
-                    className={cn(
-                      "flex-1 py-3 rounded-xl border font-display font-bold text-xs transition-all capitalize",
-                      theme === t
-                        ? "bg-accent border-accent text-white"
-                        : "bg-bg border-border text-txt2 hover:border-txt3",
-                    )}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            <section className="pt-8 border-t border-border flex flex-col gap-3">
-              <button className="flex items-center justify-center gap-2 w-full bg-card2 border border-border py-4 rounded-2xl font-display font-bold text-sm hover:bg-bg transition-all">
-                <FileJson size={18} />
-                Exporter en JSON
-              </button>
-              <button
-                onClick={resetAll}
-                className="flex items-center justify-center gap-2 w-full bg-red-l border border-red/20 py-4 rounded-2xl font-display font-bold text-sm text-red hover:bg-red/10 transition-all"
-              >
-                <Trash2 size={18} />
-                Réinitialiser l'application
-              </button>
-            </section>
-          </div>
-        </Modal>
-      )}
-
-      {/* --- Menu Modal --- */}
+      {/* --- Unified Menu Modal --- */}
       {menuModal && (
-        <Modal title="Menu" onClose={() => setMenuModal(false)}>
-          <div className="p-4 space-y-4">
-            <button className="w-full bg-card border border-border py-4 rounded-2xl font-display font-bold">
-              Changement de ligne
-            </button>
-            <button
-              onClick={() => {
-                setMenuModal(false);
-                setPinModal({ open: true, role: "employee" });
+        <Modal title="Menu Central" onClose={() => setMenuModal(false)}>
+          <div className="p-4 space-y-6 max-h-[80vh] overflow-y-auto no-scrollbar">
+            <motion.div
+              initial="hidden"
+              animate="show"
+              variants={{
+                show: { transition: { staggerChildren: 0.1 } },
               }}
-              className="w-full bg-card border border-border py-4 rounded-2xl font-display font-bold"
+              className="space-y-6"
             >
-              Pin
-            </button>
-            <button
-              onClick={() => {
-                setMenuModal(false);
-                setQrModal(true);
-              }}
-              className="w-full bg-card border border-border py-4 rounded-2xl font-display font-bold"
-            >
-              Export PDF
-            </button>
-            <button className="w-full bg-card border border-border py-4 rounded-2xl font-display font-bold">
-              Export Image
-            </button>
+              {/* Actions Rapides */}
+              <motion.section variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-3">
+                <h3 className="text-[10px] text-txt3 uppercase font-black tracking-widest px-2">Actions Rapides</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <button className="flex flex-col items-center justify-center gap-2 bg-card border border-border py-4 rounded-2xl hover:border-accent hover:bg-accent/5 transition-all group">
+                    <RefreshCw size={24} className="text-txt3 group-hover:text-accent transition-colors" />
+                    <span className="font-display font-bold text-xs text-center">Changement<br/>de ligne</span>
+                  </button>
+                  <button
+                    onClick={() => { setMenuModal(false); setPinModal({ open: true, role: "employee" }); }}
+                    className="flex flex-col items-center justify-center gap-2 bg-card border border-border py-4 rounded-2xl hover:border-accent hover:bg-accent/5 transition-all group"
+                  >
+                    <UserCircle size={24} className="text-txt3 group-hover:text-accent transition-colors" />
+                    <span className="font-display font-bold text-xs text-center">Changer<br/>de Profil</span>
+                  </button>
+                  {isEdit && (
+                    <>
+                      <button
+                        onClick={() => { setMenuModal(false); setEmpModal(true); }}
+                        className="flex flex-col items-center justify-center gap-2 bg-card border border-border py-4 rounded-2xl hover:border-accent hover:bg-accent/5 transition-all group"
+                      >
+                        <Users size={24} className="text-txt3 group-hover:text-accent transition-colors" />
+                        <span className="font-display font-bold text-xs text-center">Gérer<br/>l'Équipe</span>
+                      </button>
+                      <button
+                        onClick={() => { setMenuModal(false); copyPrevWeek(); }}
+                        className="flex flex-col items-center justify-center gap-2 bg-card border border-border py-4 rounded-2xl hover:border-accent hover:bg-accent/5 transition-all group"
+                      >
+                        <Copy size={24} className="text-txt3 group-hover:text-accent transition-colors" />
+                        <span className="font-display font-bold text-xs text-center">Initialiser<br/>Semaine</span>
+                      </button>
+                      <button
+                        onClick={() => { setMenuModal(false); handleUndo(); }}
+                        disabled={undoStack.length === 0}
+                        className="flex flex-col items-center justify-center gap-2 bg-card border border-border py-4 rounded-2xl hover:border-accent hover:bg-accent/5 transition-all group disabled:opacity-50 disabled:pointer-events-none"
+                      >
+                        <RotateCcw size={24} className="text-txt3 group-hover:text-accent transition-colors" />
+                        <span className="font-display font-bold text-xs text-center">Annuler<br/>(Undo)</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              </motion.section>
+
+              {/* Apparence */}
+              <motion.section variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-3">
+                <h3 className="text-[10px] text-txt3 uppercase font-black tracking-widest px-2 flex items-center gap-2"><Monitor size={12}/> Apparence</h3>
+                <div className="flex gap-2">
+                  {["light", "dark", "simple"].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => toggleTheme(t as any)}
+                      className={cn(
+                        "flex-1 py-3 rounded-xl border font-display font-bold text-xs transition-all capitalize",
+                        theme === t ? "bg-accent border-accent text-white" : "bg-bg border-border text-txt2 hover:border-txt3"
+                      )}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </motion.section>
+
+              {/* Export & Partage */}
+              <motion.section variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-3">
+                <h3 className="text-[10px] text-txt3 uppercase font-black tracking-widest px-2 flex items-center gap-2"><FileText size={12}/> Export & Partage</h3>
+                <div className="space-y-2">
+                  <button onClick={() => { setMenuModal(false); setQrModal(true); }} className="w-full flex items-center gap-3 bg-card border border-border p-3 rounded-xl hover:bg-bg transition-colors">
+                    <div className="w-8 h-8 rounded-lg bg-accent/10 text-accent flex items-center justify-center"><QrCode size={16} /></div>
+                    <div className="text-left"><p className="font-display font-bold text-sm">Partager & Sync</p><p className="text-[10px] text-txt3">Scanner le QR Code pour synchroniser</p></div>
+                  </button>
+                  <button onClick={() => { setMenuModal(false); setQrModal(true); }} className="w-full flex items-center gap-3 bg-card border border-border p-3 rounded-xl hover:bg-bg transition-colors">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center"><FileText size={16} /></div>
+                    <div className="text-left"><p className="font-display font-bold text-sm">Export PDF</p><p className="text-[10px] text-txt3">Télécharger le planning en PDF</p></div>
+                  </button>
+                  <button className="w-full flex items-center gap-3 bg-card border border-border p-3 rounded-xl hover:bg-bg transition-colors">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center"><ImageIcon size={16} /></div>
+                    <div className="text-left"><p className="font-display font-bold text-sm">Export Image</p><p className="text-[10px] text-txt3">Sauvegarder en tant qu'image</p></div>
+                  </button>
+                  {isEdit && (
+                    <button className="w-full flex items-center gap-3 bg-card border border-border p-3 rounded-xl hover:bg-bg transition-colors">
+                      <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center"><FileJson size={16} /></div>
+                      <div className="text-left"><p className="font-display font-bold text-sm">Exporte JSON</p><p className="text-[10px] text-txt3">Sauvegarde complète des données</p></div>
+                    </button>
+                  )}
+                </div>
+              </motion.section>
+
+              {/* Sécurité Manager */}
+              {isEdit && (
+                <motion.section variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-3 pt-4 border-t border-border">
+                  <h3 className="text-[10px] text-txt3 uppercase font-black tracking-widest px-2 flex items-center gap-2"><Lock size={12}/> Sécurité</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-txt3 font-bold px-1">PIN Manager</label>
+                      <input type="password" value={managerPinInput} onChange={(e) => updatePin("manager", e.target.value)} placeholder="••••" className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-accent" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-txt3 font-bold px-1">PIN Employé</label>
+                      <input type="password" value={employeePinInput} onChange={(e) => updatePin("employee", e.target.value)} placeholder="••••" className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-green" />
+                    </div>
+                  </div>
+                  <button onClick={resetAll} className="flex items-center justify-center gap-2 w-full bg-red-l border border-red/20 py-4 rounded-2xl font-display font-bold text-sm text-red hover:bg-red/10 transition-all mt-4">
+                    <Trash2 size={18} />
+                    Réinitialiser l'application
+                  </button>
+                </motion.section>
+              )}
+            </motion.div>
           </div>
         </Modal>
       )}

@@ -199,7 +199,7 @@ export const ChatView = ({ role, employeeIdx, employees, db }: any) => {
     >
       <div className="p-4 lg:p-6 border-b border-border flex items-center justify-between">
         <div>
-          <h3 className="font-display font-black text-lg lg:text-xl uppercase tracking-tight text-txt">
+          <h3 className="font-display font-black text-lg lg:text-xl uppercase tracking-tight text-txt" aria-level="3">
             Team Chat
           </h3>
           <p className="text-xs text-txt3 font-mono">
