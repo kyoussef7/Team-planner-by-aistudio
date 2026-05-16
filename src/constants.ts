@@ -7,12 +7,12 @@ export const DEFAULT_COLORS = [
 ];
 
 export const DEFAULT_EMP: Employee[] = [
-  { name: 'YOUSEF', hex: '#e85555' },
-  { name: 'AMINE', hex: '#d49a4a' },
-  { name: 'SOUFIAN', hex: '#a07a5a' },
-  { name: 'HIBA', hex: '#6a9a88' },
-  { name: 'HIND', hex: '#c4848a' },
-  { name: 'ASMA', hex: '#8a7a9a' },
+  { name: 'YOUSEF', hex: '#e85555', pin: '0001', skills: ['Kitchen', 'Manager'] },
+  { name: 'AMINE', hex: '#d49a4a', pin: '0002', skills: ['Delivery', 'Cashier'] },
+  { name: 'SOUFIAN', hex: '#a07a5a', pin: '0003', skills: ['Kitchen', 'Delivery'] },
+  { name: 'HIBA', hex: '#6a9a88', pin: '0004', skills: ['Cashier', 'Service'] },
+  { name: 'HIND', hex: '#c4848a', pin: '0005', skills: ['Service', 'Kitchen'] },
+  { name: 'ASMA', hex: '#8a7a9a', pin: '0006', skills: ['Manager', 'Cashier'] },
 ];
 
 export const LABELS = ['10-11', '11-12', '12-13', '13-14', '14-15', '15-16', '16-17', '17-18', '18-19', '19-20', '20-21', '21-22'];

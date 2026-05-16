@@ -237,7 +237,7 @@ export const ChatView = ({ role, employeeIdx, employees, db }: any) => {
                   </button>
                 )}
                 <div
-                  className={`max-w-[85%] rounded-2xl p-3 shadow-sm flex-1 ${isMe ? "bg-accent text-white rounded-br-sm" : "bg-card2 border border-border text-txt rounded-bl-sm"}`}
+                  className={`max-w-[85%] rounded-xl p-3 shadow-sm flex-1 ${isMe ? "bg-accent text-white rounded-br-sm" : "bg-card2 border border-border text-txt rounded-bl-sm"}`}
                 >
                   {msg.text && (
                     <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.text}</p>

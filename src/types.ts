@@ -1,6 +1,12 @@
 export interface Employee {
   name: string;
   hex: string;
+  pin?: string; // e.g. "0001"
+  skills?: string[]; // e.g., ['Kitchen', 'Delivery', 'Cashier']
+  preferences?: {
+    preferredHours?: number;
+    avoidDays?: string[];
+  };
 }
 
 export interface Shift {
@@ -13,6 +19,10 @@ export interface Day {
   full: string; // LUNDI
   date: string; // DD/MM
   shifts: Shift[];
+  requirements?: {
+    minStaff?: number;
+    skillTags?: string[];
+  };
 }
 
 export type AppData = Day[];

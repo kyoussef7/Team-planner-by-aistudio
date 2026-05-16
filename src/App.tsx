@@ -191,7 +191,10 @@ const DayRow = ({
           )}
           style={
             !shift.off
-              ? { backgroundColor: isMe ? "var(--me)" : "var(--accent)", color: "white" }
+              ? {
+                  backgroundColor: isMe ? "var(--me)" : "var(--accent)",
+                  color: "white",
+                }
               : { backgroundColor: "var(--card2)", color: "var(--txt3)" }
           }
           onClick={() => isEdit && toggleDayOff(di, ei)}
@@ -202,7 +205,11 @@ const DayRow = ({
           <p
             className={cn(
               "font-display font-black text-[10px] lg:text-base tracking-tighter truncate uppercase leading-tight transition-colors",
-              shift.off ? "text-txt3 opacity-40" : isMe ? "text-me" : "text-txt opacity-70",
+              shift.off
+                ? "text-txt3 opacity-40"
+                : isMe
+                  ? "text-me"
+                  : "text-txt opacity-70",
             )}
             onClick={() => isEdit && toggleDayOff(di, ei)}
           >
@@ -233,7 +240,11 @@ const DayRow = ({
                 v ? "border-white/10 shadow-sm" : "bg-surf/40 border-border/20",
               )}
               style={{
-                backgroundColor: v ? (isMe ? "var(--me)" : "var(--accent)") : undefined,
+                backgroundColor: v
+                  ? isMe
+                    ? "var(--me)"
+                    : "var(--accent)"
+                  : undefined,
                 opacity: v ? 1 : 0.3,
               }}
             />
@@ -245,7 +256,11 @@ const DayRow = ({
         <span
           className={cn(
             "text-sm lg:text-2xl font-display font-black tracking-tighter leading-none",
-            shift.off ? "text-txt3 opacity-20" : isMe ? "text-me" : "text-accent",
+            shift.off
+              ? "text-txt3 opacity-20"
+              : isMe
+                ? "text-me"
+                : "text-accent",
           )}
         >
           {shift.off ? "—" : `${hours}h`}
@@ -319,8 +334,10 @@ export default function App() {
     "dashboard" | "day" | "week" | "gantt" | "chat" | "settings"
   >("day");
   const [theme, setTheme] = useState<"light" | "dark" | "simple">("light");
-  
-  const [lastSeenChat, setLastSeenChat] = useState(() => Number(localStorage.getItem('lastSeenChat')) || Date.now());
+
+  const [lastSeenChat, setLastSeenChat] = useState(
+    () => Number(localStorage.getItem("lastSeenChat")) || Date.now(),
+  );
   const [hasUnreadChat, setHasUnreadChat] = useState(false);
 
   const [undoStack, setUndoStack] = useState<AppData[]>([]);
@@ -346,6 +363,30 @@ export default function App() {
   const [selectedDayPopup, setSelectedDayPopup] = useState<number | null>(null);
   const [showTeamWeekPopup, setShowTeamWeekPopup] = useState(false);
 
+  const calculateMatchScore = useCallback((emp: Employee, day: Day) => {
+    if (!day.requirements?.skillTags?.length || !emp.skills?.length) return 100;
+    const matches = emp.skills.filter((s) =>
+      day.requirements?.skillTags?.includes(s),
+    );
+    return Math.round(
+      (matches.length / day.requirements.skillTags.length) * 100,
+    );
+  }, []);
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 },
+  };
   const realMonday = useMemo(
     () => startOfWeek(new Date(), { weekStartsOn: 1 }),
     [],
@@ -387,12 +428,18 @@ export default function App() {
 
   useEffect(() => {
     if (view === "chat" || !db) return;
-    const q = query(collection(db, "chat", "general", "messages"), orderBy("timestamp", "desc"), limit(1));
+    const q = query(
+      collection(db, "chat", "general", "messages"),
+      orderBy("timestamp", "desc"),
+      limit(1),
+    );
     const unsub = onSnapshot(q, (snap) => {
       if (!snap.empty) {
         const msg = snap.docs[0].data();
         if (msg.timestamp) {
-          const msgTime = msg.timestamp.toMillis ? msg.timestamp.toMillis() : Date.now();
+          const msgTime = msg.timestamp.toMillis
+            ? msg.timestamp.toMillis()
+            : Date.now();
           if (msgTime > lastSeenChat) {
             setHasUnreadChat(true);
           }
@@ -682,13 +729,13 @@ export default function App() {
       hidden: { opacity: 0 },
       show: {
         opacity: 1,
-        transition: { staggerChildren: 0.1 }
-      }
+        transition: { staggerChildren: 0.1 },
+      },
     };
 
     const itemVariants = {
       hidden: { opacity: 0, y: 20 },
-      show: { opacity: 1, y: 0 }
+      show: { opacity: 1, y: 0 },
     };
 
     return (
@@ -698,43 +745,103 @@ export default function App() {
         animate="show"
         className="flex-1 overflow-y-auto no-scrollbar space-y-8 pb-32"
       >
-        <motion.div variants={itemVariants} className="flex items-center justify-between">
-          <div>
-            <h2 className="text-4xl font-display font-black tracking-tighter text-txt uppercase leading-none">
-              Console Manager
-            </h2>
-            <p className="text-txt3 text-sm font-medium mt-1">Gérez votre équipe en temps réel</p>
+        <motion.div
+          variants={itemVariants}
+          className="flex items-center gap-4 lg:gap-6 bg-card border border-border p-4 lg:p-6 rounded-2xl shadow-sm"
+        >
+          <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-full shadow-xl shadow-accent/20 flex flex-col items-center justify-center text-white bg-accent overflow-hidden border-2 border-accent/20 shrink-0">
+            {user?.photoURL ? (
+                <img src={user.photoURL} alt="Manager" className="w-full h-full object-cover" />
+            ) : (
+                <span className="font-display font-black text-2xl lg:text-3xl leading-none">
+                  {user?.displayName ? user.displayName.slice(0, 1).toUpperCase() : "M"}
+                </span>
+            )}
           </div>
-          <motion.div 
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] lg:text-xs text-txt3 uppercase font-black tracking-widest flex items-center gap-2">
+              Bonjour,
+              <span className="bg-accent/10 text-accent px-2 py-0.5 rounded-full text-[9px]">
+                 Manager
+              </span>
+            </p>
+            <h2 className="text-3xl lg:text-4xl font-display font-black tracking-tight text-txt leading-none mt-1 truncate">
+              {user?.displayName ? user.displayName.split(" ")[0] : "Moniteur"}
+            </h2>
+          </div>
+          
+          <motion.div
             whileHover={{ scale: 1.05 }}
-            className="flex items-center gap-2 px-4 py-2 bg-accent/10 border border-accent/20 rounded-2xl text-accent"
+            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-accent/10 border border-accent/20 rounded-xl text-accent shrink-0"
           >
             <Shield size={18} />
-            <span className="text-xs font-black uppercase tracking-widest">Premium Access</span>
+            <span className="text-[10px] font-black uppercase tracking-widest leading-none">
+              AI Matching
+            </span>
           </motion.div>
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {[
-            { label: "Aujourd'hui", val: activeStaffCount, sub: "Staff Présent", icon: Users, color: "text-accent", bg: "bg-accent/10" },
-            { label: "Total Planning", val: `${grandTotal}h`, sub: "Heures Semaine", icon: Calendar, color: "text-green", bg: "bg-green/10" },
-            { label: "Repos", val: offDays, sub: "Repos Actifs", icon: Moon, color: "text-amber", bg: "bg-amber/10" }
+            {
+              label: "Aujourd'hui",
+              val: activeStaffCount,
+              sub: "Staff",
+              icon: Users,
+              color: "text-accent",
+              bg: "bg-accent/10",
+            },
+            {
+              label: "Semaine",
+              val: `${grandTotal}h`,
+              sub: "Total",
+              icon: Calendar,
+              color: "text-green",
+              bg: "bg-green/10",
+            },
+            {
+              label: "Qualité",
+              val: "92%",
+              sub: "Match AI",
+              icon: CheckCircle2,
+              color: "text-blue-500",
+              bg: "bg-blue-500/10",
+            },
           ].map((stat, i) => (
-            <motion.div 
+            <motion.div
               key={i}
               variants={itemVariants}
               whileHover={{ y: -5 }}
-              className="bg-card border border-border p-8 rounded-[3rem] shadow-sm relative overflow-hidden group transition-all"
+              whileTap={{ scale: 0.98 }}
+              className="bg-card border border-border p-5 lg:p-8 rounded-2xl shadow-sm relative overflow-hidden group transition-all"
             >
-              <div className={cn("absolute -top-4 -right-4 w-24 h-24 rounded-full blur-3xl opacity-20", stat.bg)} />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-txt3 mb-6">{stat.label}</p>
-              <div className="flex items-center gap-5">
-                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner", stat.bg, stat.color)}>
-                  <stat.icon size={28} />
+              <div
+                className={cn(
+                  "absolute -top-4 -right-4 w-24 h-24 rounded-full blur-3xl opacity-20",
+                  stat.bg,
+                )}
+              />
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-txt3 mb-4 lg:mb-6 leading-none">
+                {stat.label}
+              </p>
+              <div className="flex items-center gap-3 lg:gap-5">
+                <div
+                  className={cn(
+                    "w-10 h-10 lg:w-14 lg:h-14 rounded-xl lg:rounded-2xl flex items-center justify-center shadow-inner shrink-0",
+                    stat.bg,
+                    stat.color,
+                  )}
+                >
+                  <stat.icon size={20} className="lg:hidden" />
+                  <stat.icon size={28} className="hidden lg:block" />
                 </div>
                 <div>
-                  <p className="text-3xl font-display font-black text-txt leading-none">{stat.val}</p>
-                  <p className="text-[10px] text-txt3 uppercase font-bold mt-1">{stat.sub}</p>
+                  <p className="text-xl lg:text-3xl font-display font-black text-txt leading-none">
+                    {stat.val}
+                  </p>
+                  <p className="text-[9px] lg:text-[10px] text-txt3 uppercase font-bold mt-1 lg:mt-1.5 whitespace-nowrap">
+                    {stat.sub}
+                  </p>
                 </div>
               </div>
             </motion.div>
@@ -742,71 +849,149 @@ export default function App() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <motion.div variants={itemVariants} className="bg-card border border-border rounded-[3rem] p-8 shadow-sm">
-            <h3 className="font-display font-black text-xs uppercase mb-8 tracking-[0.2em] flex items-center gap-2 underline decoration-accent/30 decoration-4 underline-offset-4">
+          <motion.div
+            variants={itemVariants}
+            className="bg-card border border-border rounded-2xl p-8 shadow-sm"
+          >
+            <h3 className="font-display font-black text-xs uppercase mb-8 tracking-[0.2em] flex items-center gap-2">
               <Clock size={16} className="text-accent" />
-              État de présence
+              État de présence & Matching
             </h3>
             <div className="space-y-3">
               {todayData ? (
                 employees.map((e, ei) => {
                   const sh = todayData.shifts[ei];
                   const isActive = !sh.off && sh.s.some((v) => v);
+                  const score = calculateMatchScore(e, todayData);
+
                   return (
-                    <div key={ei} className={cn(
-                      "flex items-center justify-between p-4 rounded-2xl border transition-all",
-                      isActive ? "bg-bg border-border" : "opacity-20 grayscale"
-                    )}>
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-display font-black text-lg shadow-sm" style={{ backgroundColor: ei === employeeIdx ? "var(--me)" : "var(--accent)" }}>
+                    <div
+                      key={ei}
+                      className={cn(
+                        "flex items-center justify-between p-4 rounded-xl border transition-all hover:bg-bg relative overflow-hidden group",
+                        isActive
+                          ? "bg-bg/50 border-border"
+                          : "opacity-40 grayscale",
+                      )}
+                    >
+                      <div className="flex items-center gap-4 relative z-10">
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-display font-black text-lg shadow-sm group-hover:scale-110 transition-transform"
+                          style={{ backgroundColor: e.hex }}
+                        >
                           {e.name.slice(0, 1)}
                         </div>
                         <div>
-                          <p className={cn(
-                            "font-display font-black text-sm uppercase leading-tight",
-                            ei === employeeIdx ? "text-accent" : "text-txt opacity-70"
-                          )}>
+                          <p className="font-display font-black text-sm uppercase leading-tight text-txt">
                             {e.name}
                           </p>
-                          <p className="text-[9px] text-txt3 font-mono font-bold">{isActive ? "En poste" : "Absent"}</p>
+                          <div className="flex gap-1 mt-1 opacity-60">
+                            {e.skills?.slice(0, 2).map((s, si) => (
+                              <span
+                                key={si}
+                                className="text-[8px] px-1.5 py-0.5 bg-accent/20 rounded-md font-bold uppercase tracking-widest text-[var(--accent)]"
+                              >
+                                {s}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                      {isActive && <div className="w-2.5 h-2.5 rounded-full bg-green animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.5)]" />}
+                      <div className="flex items-center gap-4 relative z-10">
+                        <div className="text-right">
+                          <p className="text-[9px] text-txt3 font-black uppercase tracking-widest">
+                            Match
+                          </p>
+                          <p
+                            className={cn(
+                              "text-xs font-black font-display",
+                              score > 80 ? "text-green" : "text-amber",
+                            )}
+                          >
+                            {score}%
+                          </p>
+                        </div>
+                        <div
+                          className={cn(
+                            "w-2.5 h-2.5 rounded-full",
+                            isActive
+                              ? "bg-green animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.5)]"
+                              : "bg-txt3 opacity-20",
+                          )}
+                        />
+                      </div>
                     </div>
                   );
                 })
               ) : (
                 <div className="text-center py-12 opacity-30">
                   <Monitor size={48} className="mx-auto mb-4" />
-                  <p className="text-xs font-bold uppercase tracking-widest">Aucune donnée</p>
+                  <p className="text-xs font-bold uppercase tracking-widest">
+                    Aucune donnée
+                  </p>
                 </div>
               )}
             </div>
           </motion.div>
 
-          <motion.div variants={itemVariants} className="bg-card border border-border rounded-[3rem] p-8 shadow-sm">
-            <h3 className="font-display font-black text-xs uppercase mb-8 tracking-[0.2em] flex items-center gap-2 underline decoration-green/30 decoration-4 underline-offset-4">
+          <motion.div
+            variants={itemVariants}
+            className="bg-card border border-border rounded-2xl p-8 shadow-sm"
+          >
+            <h3 className="font-display font-black text-xs uppercase mb-8 tracking-[0.2em] flex items-center gap-2">
               <LayoutDashboard size={16} className="text-green" />
               Contrôle Rapide
             </h3>
             <div className="grid grid-cols-2 gap-4">
               {[
-                { id: "day", t: "Modifier Jour", s: "Focus quotidien", icon: Clock },
-                { id: "week", t: "Vue Semaine", s: "Grille globale", icon: Calendar },
-                { id: "emp", t: "Équipe", s: "Rôles & Staff", icon: Users, modal: true },
-                { id: "qr", t: "Exporter", s: "PDF & QR Code", icon: QrCode, modal: true }
+                {
+                  id: "day",
+                  t: "Modifier Jour",
+                  s: "Shift daily",
+                  icon: Clock,
+                },
+                {
+                  id: "week",
+                  t: "Vue Semaine",
+                  s: "Global view",
+                  icon: Calendar,
+                },
+                {
+                  id: "emp",
+                  t: "Équipe",
+                  s: "Staff members",
+                  icon: Users,
+                  modal: true,
+                },
+                {
+                  id: "qr",
+                  t: "Exporter",
+                  s: "Export tools",
+                  icon: QrCode,
+                  modal: true,
+                },
               ].map((btn, i) => (
                 <button
                   key={i}
-                  onClick={() => btn.modal ? (btn.id === 'emp' ? setEmpModal(true) : setQrModal(true)) : setView(btn.id as any)}
-                  className="p-6 bg-bg border border-border rounded-[2rem] hover:border-accent hover:shadow-xl hover:shadow-accent/5 transition-all text-left flex flex-col justify-between group h-32 active:scale-95"
+                  onClick={() =>
+                    btn.modal
+                      ? btn.id === "emp"
+                        ? setEmpModal(true)
+                        : setQrModal(true)
+                      : setView(btn.id as any)
+                  }
+                  className="p-6 bg-bg border border-border rounded-2xl hover:border-accent hover:shadow-xl hover:shadow-accent/5 transition-all text-left flex flex-col justify-between group h-32 active:scale-95"
                 >
                   <div className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center text-txt3 group-hover:text-accent group-hover:border-accent transition-colors">
                     <btn.icon size={20} />
                   </div>
                   <div>
-                    <p className="font-display font-black text-sm uppercase leading-none">{btn.t}</p>
-                    <p className="text-[9px] text-txt3 font-bold mt-1 opacity-60">{btn.s}</p>
+                    <p className="font-display font-black text-sm uppercase leading-none">
+                      {btn.t}
+                    </p>
+                    <p className="text-[9px] text-txt3 font-bold mt-1.5 opacity-60 uppercase tracking-widest">
+                      {btn.s}
+                    </p>
                   </div>
                 </button>
               ))}
@@ -819,29 +1004,22 @@ export default function App() {
   const [managerPinInput, setManagerPinInput] = useState(
     localStorage.getItem(STORAGE_KEYS.PIN) || DEFAULT_PIN,
   );
-  const [employeePinInput, setEmployeePinInput] = useState(
-    localStorage.getItem(STORAGE_KEYS.STAFF_PIN) || DEFAULT_EMPLOYEE_PIN,
-  );
 
-  const updatePin = (pinRole: "manager" | "employee", val: string) => {
+  const updatePin = (val: string) => {
     if (val.length > 4) return;
-    if (pinRole === "manager") {
-      setManagerPinInput(val);
-      if (val.length === 4) localStorage.setItem(STORAGE_KEYS.PIN, val);
-    } else {
-      setEmployeePinInput(val);
-      if (val.length === 4) localStorage.setItem(STORAGE_KEYS.STAFF_PIN, val);
-    }
+    setManagerPinInput(val);
+    if (val.length === 4) localStorage.setItem(STORAGE_KEYS.PIN, val);
   };
-  const handleUnlock = (success: boolean) => {
+  const handleUnlock = (success: boolean, empIdx?: number | null) => {
     if (success) {
       if (pinModal?.role === "manager") {
         setIsEdit(true);
         setRole("manager");
         setView("dashboard");
       } else {
-        setEmployeeIdx(null); // Clear previous selection
+        setEmployeeIdx(empIdx ?? null);
         setRole("employee");
+        setView("day");
       }
       setPinModal(null);
     }
@@ -1014,30 +1192,66 @@ export default function App() {
   if (!role && !pinModal) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-bg p-4 overflow-hidden relative">
-        <div className="noise-texture" />
-        
-        {/* Dynamic background shapes */}
-        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-green/5 rounded-full blur-[120px]" />
+        <div className="noise-texture opacity-20" />
+
+        {/* Enhanced Dynamic background shapes */}
+        <motion.div
+          animate={{
+            scale: [1, 1.1, 1],
+            x: [0, 20, 0],
+            y: [0, -20, 0],
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+          className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] max-w-[500px] max-h-[500px] bg-accent/5 rounded-full blur-[120px]"
+        />
+        <motion.div
+          animate={{
+            scale: [1, 1.2, 1],
+            x: [0, -20, 0],
+            y: [0, 20, 0],
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute bottom-[-10%] left-[-10%] w-[60vw] h-[60vw] max-w-[600px] max-h-[600px] bg-green/5 rounded-full blur-[120px]"
+        />
 
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md bg-card/70 backdrop-blur-xl border border-white/20 rounded-[3rem] p-10 shadow-[0_32px_80px_-20px_rgba(0,0,0,0.15)] text-center relative z-10"
+          initial={{ opacity: 0, y: 40, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", stiffness: 200, damping: 20 }}
+          className="w-full max-w-md bg-card/60 backdrop-blur-2xl border border-white/10 rounded-[3rem] p-8 sm:p-10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.15)] text-center relative z-10"
         >
-          <div className="mb-8 relative inline-block">
-            <div className="absolute inset-[-10px] rounded-full border border-accent/20 animate-spin-slow" />
-            <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center text-accent relative">
-              <Lock size={36} />
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
+            className="mb-8 relative inline-block"
+          >
+            <div className="absolute inset-[-15px] rounded-full border border-accent/20 animate-[spin_10s_linear_infinite]" />
+            <div className="absolute inset-[-8px] rounded-full border-t border-r border-accent/40 animate-[spin_5s_linear_infinite_reverse]" />
+            <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center text-accent relative shadow-inner overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-tr from-accent/20 to-transparent" />
+              <Lock size={36} className="relative z-10" />
             </div>
-          </div>
+          </motion.div>
 
-          <h1 className="text-3xl font-display font-black mb-2 uppercase tracking-tight">
-            Planning<br/>Central
-          </h1>
-          <p className="text-txt3 text-sm mb-10 font-medium">
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-3xl sm:text-4xl font-display font-black mb-2 uppercase tracking-tight leading-none"
+          >
+            Planning
+            <br />
+            Central
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-txt3 text-sm mb-10 font-medium"
+          >
             Portail de gestion d'équipe
-          </p>
+          </motion.p>
 
           <motion.div
             className="grid grid-cols-2 gap-4"
@@ -1046,7 +1260,8 @@ export default function App() {
               show: {
                 opacity: 1,
                 transition: {
-                  staggerChildren: 0.15,
+                  staggerChildren: 0.2,
+                  delayChildren: 0.3,
                 },
               },
             }}
@@ -1055,20 +1270,23 @@ export default function App() {
           >
             <motion.button
               variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0 },
+                hidden: { opacity: 0, y: 20, scale: 0.9 },
+                show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 400, damping: 20 } },
               }}
-              whileHover={{ y: -8, scale: 1.02 }}
+              whileHover={{ y: -8, scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => handleRoleSelect("manager")}
-              className="flex flex-col items-center gap-4 p-6 bg-surf border border-border rounded-3xl hover:border-accent hover:shadow-[0_10px_30px_-10px_rgba(230,57,70,0.3)] transition-all group"
+              className="relative flex flex-col items-center gap-4 p-6 bg-surf border border-border rounded-3xl hover:border-accent hover:shadow-[0_15px_40px_-15px_rgba(230,57,70,0.4)] transition-all duration-300 group overflow-hidden"
             >
-              <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-all duration-300">
-                <Shield size={24} />
+              <div className="absolute inset-0 bg-gradient-to-b from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/10 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-all duration-300 relative z-10">
+                <Shield size={26} />
               </div>
-              <div className="flex flex-col items-center">
-                <span className="font-display font-black text-sm uppercase">Manager</span>
-                <span className="text-[8px] text-txt3 font-bold uppercase tracking-widest opacity-60">
+              <div className="flex flex-col items-center relative z-10">
+                <span className="font-display font-black text-base uppercase tracking-tight">
+                  Manager
+                </span>
+                <span className="text-[9px] text-txt3 font-bold uppercase tracking-[0.15em] opacity-80 mt-1">
                   Accès Total
                 </span>
               </div>
@@ -1076,20 +1294,23 @@ export default function App() {
 
             <motion.button
               variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0 },
+                hidden: { opacity: 0, y: 20, scale: 0.9 },
+                show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 400, damping: 20 } },
               }}
-              whileHover={{ y: -8, scale: 1.02 }}
+              whileHover={{ y: -8, scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => handleRoleSelect("employee")}
-              className="flex flex-col items-center gap-4 p-6 bg-surf border border-border rounded-3xl hover:border-green hover:shadow-[0_10px_30px_-10px_rgba(34,197,94,0.3)] transition-all group"
+              className="relative flex flex-col items-center gap-4 p-6 bg-surf border border-border rounded-3xl hover:border-green hover:shadow-[0_15px_40px_-15px_rgba(34,197,94,0.4)] transition-all duration-300 group overflow-hidden"
             >
-              <div className="w-12 h-12 rounded-2xl bg-green/10 flex items-center justify-center text-green group-hover:bg-green group-hover:text-white transition-all duration-300">
-                <User size={24} />
+              <div className="absolute inset-0 bg-gradient-to-b from-green/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="w-14 h-14 rounded-2xl bg-green/10 border border-green/10 flex items-center justify-center text-green group-hover:bg-green group-hover:text-white transition-all duration-300 relative z-10">
+                <User size={26} />
               </div>
-              <div className="flex flex-col items-center">
-                <span className="font-display font-black text-sm uppercase">Employé</span>
-                <span className="text-[8px] text-txt3 font-bold uppercase tracking-widest opacity-60">
+              <div className="flex flex-col items-center relative z-10">
+                <span className="font-display font-black text-base uppercase tracking-tight">
+                  Employé
+                </span>
+                <span className="text-[9px] text-txt3 font-bold uppercase tracking-[0.15em] opacity-80 mt-1">
                   Vue Perso
                 </span>
               </div>
@@ -1097,11 +1318,16 @@ export default function App() {
           </motion.div>
 
           {/* Theme Switcher in Splash */}
-          <div className="mt-12 flex flex-col items-center gap-4 border-t border-border/50 pt-8">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            className="mt-12 flex flex-col items-center gap-4 border-t border-border/50 pt-8"
+          >
             <span className="text-[10px] text-txt3 uppercase tracking-[0.2em] font-black">
               Thème
             </span>
-            <div className="flex gap-6">
+            <div className="flex gap-4 p-1.5 bg-surf rounded-2xl border border-border">
               {[
                 { id: "light", icon: Sun, label: "Clair" },
                 { id: "dark", icon: Moon, label: "Sombre" },
@@ -1110,85 +1336,34 @@ export default function App() {
                   key={t.id}
                   onClick={() => toggleTheme(t.id as any)}
                   className={cn(
-                    "flex flex-col items-center gap-2 transition-all duration-300",
-                    theme === t.id ? "text-accent" : "text-txt3 hover:text-txt"
+                    "flex flex-col items-center p-3 sm:px-6 rounded-xl transition-all duration-300 relative",
+                    theme === t.id ? "text-txt" : "text-txt3 hover:text-txt",
                   )}
                 >
-                  <div className={cn(
-                    "p-3 rounded-2xl border transition-all",
-                    theme === t.id ? "bg-accent/5 border-accent shadow-[0_0_15px_rgba(230,57,70,0.1)]" : "border-transparent bg-transparent"
-                  )}>
-                    <t.icon size={20} />
+                  {theme === t.id && (
+                    <motion.div
+                      layoutId="theme-active-splash"
+                      className="absolute inset-0 bg-card shadow-sm border border-border rounded-xl"
+                      initial={false}
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <div className="relative z-10 flex items-center gap-2">
+                    <t.icon size={16} />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">
+                      {t.label}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-widest">{t.label}</span>
                 </button>
               ))}
             </div>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
     );
   }
 
-  // Handle Employee Identity Selection
-  if (role === "employee" && employeeIdx === null) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-bg p-4 relative">
-        <div className="noise-texture" />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md bg-card border border-border rounded-3xl p-8 shadow-xl text-center z-10"
-        >
-          <button
-            onClick={() => setRole(null)}
-            className="absolute top-6 left-6 p-2 hover:bg-card2 rounded-lg text-txt3"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <div className="mb-6 relative inline-block">
-            <div className="w-16 h-16 bg-green/10 rounded-full flex items-center justify-center text-green">
-              <User size={32} />
-            </div>
-          </div>
-          <h2 className="text-xl font-display font-bold mb-1">
-            Qui êtes-vous ?
-          </h2>
-          <p className="text-txt3 text-xs mb-8">
-            Sélectionnez votre nom pour accéder à votre espace
-          </p>
 
-          <div className="space-y-3">
-            {employees.map((e, idx) => (
-              <button
-                key={idx}
-                onClick={() => setEmployeeIdx(idx)}
-                className="w-full flex items-center gap-4 p-4 bg-bg border border-border2 rounded-2xl hover:border-green hover:bg-green/5 transition-all text-left group"
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center font-display font-black text-xs shadow-sm group-hover:scale-110 transition-transform"
-                  style={{
-                    backgroundColor: e.hex + "20",
-                    color: e.hex,
-                    border: `1px solid ${e.hex}40`,
-                  }}
-                >
-                  {e.name.slice(0, 2)}
-                </div>
-                <span className="font-display font-bold text-sm flex-1">
-                  {e.name}
-                </span>
-                <ChevronRight
-                  size={16}
-                  className="text-txt3 opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all"
-                />
-              </button>
-            ))}
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
 
   // Define Personal View for Employees
   const renderPersonalView = () => {
@@ -1227,13 +1402,13 @@ export default function App() {
       hidden: { opacity: 0 },
       show: {
         opacity: 1,
-        transition: { staggerChildren: 0.1 }
-      }
+        transition: { staggerChildren: 0.1 },
+      },
     };
 
     const itemVariants = {
       hidden: { opacity: 0, y: 20 },
-      show: { opacity: 1, y: 0 }
+      show: { opacity: 1, y: 0 },
     };
 
     return (
@@ -1243,55 +1418,80 @@ export default function App() {
         animate="show"
         className="flex-1 overflow-y-auto no-scrollbar space-y-6 pb-24"
       >
-        <motion.div variants={itemVariants} className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-display font-black tracking-tighter text-txt uppercase leading-none">
-              Mon Espace
-            </h2>
-            <p className="text-txt3 text-xs font-medium mt-1">
-              Bonjour <span className="text-accent">{emp.name}</span>, voici ton planning
-            </p>
-          </div>
-          <motion.div
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            className="w-12 h-12 lg:w-16 lg:h-16 rounded-[1.25rem] lg:rounded-2xl shadow-xl shadow-accent/20 flex items-center justify-center text-white font-display font-black text-xl lg:text-3xl"
+        <motion.div
+          variants={itemVariants}
+          className="flex items-center gap-4 lg:gap-6 bg-card border border-border p-4 lg:p-6 rounded-2xl shadow-sm"
+        >
+          <div
+            className="w-16 h-16 lg:w-20 lg:h-20 rounded-full shadow-xl shadow-accent/20 flex flex-col items-center justify-center text-white"
             style={{ backgroundColor: "var(--accent)" }}
           >
-            {emp.name.slice(0, 1)}
-          </motion.div>
+            <span className="font-display font-black text-2xl lg:text-3xl leading-none">
+              {emp.name.slice(0, 1)}
+            </span>
+          </div>
+          <div>
+            <p className="text-[10px] lg:text-xs text-txt3 uppercase font-black tracking-widest">
+              Bonjour,
+            </p>
+            <h2 className="text-3xl lg:text-4xl font-display font-black tracking-tight text-txt leading-none mt-1">
+              {emp.name.split(" ")[0]}
+            </h2>
+          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-8">
-          <motion.div variants={itemVariants} className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+          <motion.div
+            variants={itemVariants}
+            className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group"
+          >
             <div className="absolute -top-4 -right-4 w-24 h-24 bg-accent/5 rounded-full blur-2xl group-hover:bg-accent/10 transition-colors" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-txt3">Prochain Shift</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-txt3">
+              Prochain Shift
+            </span>
             <div className="flex items-center gap-4 mt-3">
               <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
                 <Clock size={24} />
               </div>
               <div>
-                <span className="font-display font-black text-lg lg:text-2xl text-txt uppercase block">{nextShiftInfo}</span>
-                <span className="text-[9px] font-bold text-txt3 uppercase tracking-widest leading-none">Perspective Hebdomadaire</span>
+                <span className="font-display font-black text-lg lg:text-2xl text-txt uppercase block">
+                  {nextShiftInfo}
+                </span>
+                <span className="text-[9px] font-bold text-txt3 uppercase tracking-widest leading-none">
+                  Perspective Hebdomadaire
+                </span>
               </div>
             </div>
           </motion.div>
-          <motion.div variants={itemVariants} className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+          <motion.div
+            variants={itemVariants}
+            className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group"
+          >
             <div className="absolute -top-4 -right-4 w-24 h-24 bg-green/5 rounded-full blur-2xl group-hover:bg-green/10 transition-colors" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-txt3">Total Semaine</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-txt3">
+              Total Semaine
+            </span>
             <div className="flex items-center gap-4 mt-3">
               <div className="w-12 h-12 rounded-2xl bg-green/10 flex items-center justify-center text-green">
                 <Calendar size={24} />
               </div>
               <div>
-                <span className="font-display font-black text-2xl lg:text-3xl text-txt block">{weeklyTotal}h</span>
-                <span className="text-[9px] font-bold text-txt3 uppercase tracking-widest leading-none">Total validé</span>
+                <span className="font-display font-black text-2xl lg:text-3xl text-txt block">
+                  {weeklyTotal}h
+                </span>
+                <span className="text-[9px] font-bold text-txt3 uppercase tracking-widest leading-none">
+                  Total validé
+                </span>
               </div>
             </div>
           </motion.div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-          <motion.div variants={itemVariants} className="bg-card border border-border rounded-2xl p-8 shadow-sm">
+          <motion.div
+            variants={itemVariants}
+            className="bg-card border border-border rounded-2xl p-8 shadow-sm"
+          >
             <h3 className="font-display font-black text-xs uppercase mb-8 tracking-[0.2em] flex items-center gap-2">
               <Clock size={16} className="text-accent" />
               Tes Horaires
@@ -1299,23 +1499,38 @@ export default function App() {
             <div className="space-y-4">
               {data.map((d, i) => {
                 const shift = d.shifts[employeeIdx!];
-                const active = !shift.off && shift.s.some(v => v);
+                const active = !shift.off && shift.s.some((v) => v);
                 return (
-                  <div key={i} className={cn(
-                    "flex items-center justify-between p-4 rounded-2xl border transition-all hover:border-accent/30 group",
-                    active ? "bg-bg border-border" : "opacity-30 border-dashed"
-                  )}>
+                  <div
+                    key={i}
+                    className={cn(
+                      "flex items-center justify-between p-4 rounded-2xl border transition-all hover:border-accent/30 group",
+                      active
+                        ? "bg-bg border-border"
+                        : "opacity-30 border-dashed",
+                    )}
+                  >
                     <div className="flex flex-col">
-                      <span className="font-display font-black text-sm uppercase group-hover:text-accent transition-colors">{d.full}</span>
-                      <span className="text-[10px] text-txt3 font-bold">{d.date}</span>
+                      <span className="font-display font-black text-sm uppercase group-hover:text-accent transition-colors">
+                        {d.full}
+                      </span>
+                      <span className="text-[10px] text-txt3 font-bold">
+                        {d.date}
+                      </span>
                     </div>
                     {active ? (
                       <div className="text-right">
-                        <span className="text-base font-display font-black text-accent">{shift.s.reduce((a: number,b: number)=>a+b,0)}h</span>
-                        <p className="text-[9px] text-txt3 font-mono font-bold">Début à {shift.s.findIndex(v=>v)+10}h</p>
+                        <span className="text-base font-display font-black text-accent">
+                          {shift.s.reduce((a: number, b: number) => a + b, 0)}h
+                        </span>
+                        <p className="text-[9px] text-txt3 font-mono font-bold">
+                          Début à {shift.s.findIndex((v) => v) + 10}h
+                        </p>
                       </div>
                     ) : (
-                      <span className="text-[10px] font-black uppercase tracking-widest text-txt3">Repos</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-txt3">
+                        Repos
+                      </span>
                     )}
                   </div>
                 );
@@ -1323,7 +1538,10 @@ export default function App() {
             </div>
           </motion.div>
 
-          <motion.div variants={itemVariants} className="bg-card border border-border rounded-2xl p-8 shadow-sm">
+          <motion.div
+            variants={itemVariants}
+            className="bg-card border border-border rounded-2xl p-8 shadow-sm"
+          >
             <h3 className="font-display font-black text-xs uppercase mb-8 tracking-[0.2em] flex items-center gap-2">
               <Users size={16} className="text-green" />
               Sur place aujourd'hui
@@ -1335,17 +1553,39 @@ export default function App() {
                   const sh = todayData.shifts[ei];
                   if (!sh.off && sh.s.some((v) => v)) {
                     return (
-                      <div key={ei} className="flex items-center justify-between p-4 bg-bg rounded-2xl border border-border/50 group hover:border-accent/40 transition-all">
+                      <div
+                        key={ei}
+                        className="flex items-center justify-between p-4 bg-bg rounded-xl border border-border/50 group hover:border-accent/40 transition-all"
+                      >
                         <div className="flex items-center gap-4">
-                          <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-display font-black text-lg shadow-sm group-hover:scale-110 transition-transform" style={{ backgroundColor: "var(--accent)" }}>
+                          <div
+                            className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-display font-black text-lg shadow-sm group-hover:scale-110 transition-transform"
+                            style={{ backgroundColor: e.hex }}
+                          >
                             {e.name.slice(0, 1)}
                           </div>
                           <div>
-                            <p className="font-display font-black text-sm uppercase text-txt opacity-70">{e.name}</p>
-                            <p className="text-[9px] text-txt3 font-mono font-bold">Actuellement en poste</p>
+                            <p className="font-display font-black text-sm uppercase text-txt opacity-70">
+                              {e.name}
+                            </p>
+                            <div className="flex gap-1 mt-0.5 opacity-60">
+                              {e.skills?.slice(0, 2).map((s, si) => (
+                                <span
+                                  key={si}
+                                  className="text-[8px] px-1.5 py-0.5 bg-accent/20 rounded-md font-bold uppercase tracking-widest text-[var(--accent)]"
+                                >
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                        <div className="w-2.5 h-2.5 rounded-full bg-green animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.5)]" />
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-green animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                          <span className="text-[8px] font-black uppercase tracking-widest text-txt3">
+                            En poste
+                          </span>
+                        </div>
                       </div>
                     );
                   }
@@ -1354,13 +1594,15 @@ export default function App() {
               ) : (
                 <div className="text-center py-12 opacity-30">
                   <Monitor size={48} className="mx-auto mb-4" />
-                  <p className="text-sm font-bold uppercase tracking-widest">Aucune donnée</p>
+                  <p className="text-sm font-bold uppercase tracking-widest">
+                    Aucune donnée
+                  </p>
                 </div>
               )}
             </div>
           </motion.div>
         </div>
-        
+
         <motion.div variants={itemVariants} className="flex gap-4">
           <button
             onClick={() => setShowTeamWeekPopup(true)}
@@ -1380,7 +1622,6 @@ export default function App() {
     );
   };
 
-
   const renderSettingsView = () => (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -1391,159 +1632,383 @@ export default function App() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-4xl font-display font-black tracking-tighter text-txt uppercase leading-none">
-            Paramètres
+            Settings
           </h2>
-          <p className="text-txt3 text-sm font-medium mt-1">Personnalisez votre expérience</p>
+          <p className="text-txt3 text-sm font-medium mt-1">
+            Configure your workspace & account
+          </p>
         </div>
       </div>
 
-      <div className="space-y-8">
-        <motion.div
-          initial="hidden"
-          animate="show"
-          variants={{
-            show: { transition: { staggerChildren: 0.1 } },
-          }}
-          className="space-y-8"
+      <div className="space-y-6">
+        {/* Profile / Account Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-3"
         >
-          {/* Actions Rapides */}
-          <motion.section variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-4">
-            <h3 className="text-xs text-txt3 uppercase font-black tracking-widest px-1">Actions Rapides</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <button className="flex items-center gap-4 bg-card border border-border p-5 rounded-2xl hover:border-accent hover:bg-accent/5 transition-all group text-left">
-                <div className="w-12 h-12 rounded-xl bg-card border border-border flex items-center justify-center text-txt3 group-hover:text-accent group-hover:border-accent transition-colors shadow-sm">
-                  <RefreshCw size={24} />
-                </div>
-                <div>
-                  <p className="font-display font-bold text-sm">Changement de ligne</p>
-                  <p className="text-[10px] text-txt3 font-bold uppercase tracking-widest opacity-60">Synchronisation</p>
-                </div>
-              </button>
-              <button
-                onClick={() => { setPinModal({ open: true, role: "employee" }); }}
-                className="flex items-center gap-4 bg-card border border-border p-5 rounded-xl hover:border-accent hover:bg-accent/5 transition-all group text-left"
-              >
-                <div className="w-12 h-12 rounded-xl bg-card border border-border flex items-center justify-center text-txt3 group-hover:text-accent group-hover:border-accent transition-colors shadow-sm">
-                  <UserCircle size={24} />
-                </div>
-                <div>
-                  <p className="font-display font-bold text-sm">Changer de Profil</p>
-                  <p className="text-[10px] text-txt3 font-bold uppercase tracking-widest opacity-60">Session Employé</p>
-                </div>
-              </button>
-              {isEdit && (
-                <>
-                  <button
-                    onClick={() => { setEmpModal(true); }}
-                    className="flex items-center gap-4 bg-card border border-border p-5 rounded-xl hover:border-accent hover:bg-accent/5 transition-all group text-left"
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-card border border-border flex items-center justify-center text-txt3 group-hover:text-accent group-hover:border-accent transition-colors shadow-sm">
-                      <Users size={24} />
-                    </div>
-                    <div>
-                      <p className="font-display font-bold text-sm">Gérer l'Équipe</p>
-                      <p className="text-[10px] text-txt3 font-bold uppercase tracking-widest opacity-60">Rôles & Staff</p>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => { copyPrevWeek(); }}
-                    className="flex items-center gap-4 bg-card border border-border p-5 rounded-xl hover:border-accent hover:bg-accent/5 transition-all group text-left"
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-card border border-border flex items-center justify-center text-txt3 group-hover:text-accent group-hover:border-accent transition-colors shadow-sm">
-                      <Copy size={24} />
-                    </div>
-                    <div>
-                      <p className="font-display font-bold text-sm">Initialiser Semaine</p>
-                      <p className="text-[10px] text-txt3 font-bold uppercase tracking-widest opacity-60">Depuis Semaine -1</p>
-                    </div>
-                  </button>
-                </>
-              )}
-            </div>
-          </motion.section>
-
-          {/* Apparence */}
-          <motion.section variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-4">
-            <h3 className="text-xs text-txt3 uppercase font-black tracking-widest px-1 flex items-center gap-2"><Monitor size={14}/> Apparence</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {["light", "dark", "simple"].map((t) => (
-                <button
-                  key={t}
-                  onClick={() => toggleTheme(t as any)}
-                  className={cn(
-                    "py-5 rounded-xl border font-display font-black text-xs transition-all uppercase tracking-widest",
-                    theme === t ? "bg-accent border-accent text-white shadow-lg shadow-accent/20" : "bg-card border-border text-txt2 hover:border-txt3"
+          <h3 className="text-[10px] text-txt3 uppercase font-black tracking-widest px-2">
+            Account
+          </h3>
+          <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+            <div className="p-4 lg:p-6 flex items-center justify-between border-b border-border/50">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
+                  {user?.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt="User"
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <User size={24} />
                   )}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </motion.section>
-
-          {/* Export & Partage */}
-          <motion.section variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-4">
-            <h3 className="text-xs text-txt3 uppercase font-black tracking-widest px-1 flex items-center gap-2"><FileText size={14}/> Export & Partage</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button onClick={() => { setQrModal(true); }} className="flex items-center gap-4 bg-card border border-border p-5 rounded-xl hover:bg-bg transition-all hover:border-accent group">
-                <div className="w-12 h-12 rounded-xl bg-accent/10 text-accent flex items-center justify-center group-hover:bg-accent group-hover:text-white transition-all"><QrCode size={24} /></div>
-                <div className="text-left"><p className="font-display font-bold text-sm">Partager & Sync</p><p className="text-[10px] text-txt3 font-bold uppercase tracking-widest opacity-60">QR Code</p></div>
-              </button>
-              <button onClick={() => { setQrModal(true); }} className="flex items-center gap-4 bg-card border border-border p-5 rounded-xl hover:bg-bg transition-all hover:border-blue-500 group">
-                <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-all"><FileText size={24} /></div>
-                <div className="text-left"><p className="font-display font-bold text-sm">Export PDF</p><p className="text-[10px] text-txt3 font-bold uppercase tracking-widest opacity-60">Téléchargement</p></div>
-              </button>
-            </div>
-          </motion.section>
-
-          {/* Sécurité Manager */}
-          {isEdit && (
-            <motion.section variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-4 pt-8 border-t border-border">
-              <h3 className="text-xs text-txt3 uppercase font-black tracking-widest px-1 flex items-center gap-2"><Lock size={14}/> Sécurité & Danger Zone</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] text-txt3 font-black uppercase tracking-widest px-1">PIN Manager</label>
-                  <input type="password" value={managerPinInput} onChange={(e) => updatePin("manager", e.target.value)} placeholder="••••" className="w-full bg-card border border-border rounded-xl px-5 py-4 text-sm font-mono outline-none focus:border-accent shadow-sm" />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] text-txt3 font-black uppercase tracking-widest px-1">PIN Employé</label>
-                  <input type="password" value={employeePinInput} onChange={(e) => updatePin("employee", e.target.value)} placeholder="••••" className="w-full bg-card border border-border rounded-xl px-5 py-4 text-sm font-mono outline-none focus:border-green shadow-sm" />
+                <div>
+                  <p className="font-display font-bold text-lg leading-tight text-txt">
+                    {user?.displayName || "Utilisateur"}
+                  </p>
+                  <p className="text-xs text-txt3 font-medium flex items-center gap-2 mt-1">
+                    {user?.email || "Connecté"}
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 rounded-full text-[9px] uppercase font-black tracking-widest",
+                        role === "manager"
+                          ? "bg-accent/10 text-accent border border-accent/20"
+                          : "bg-green/10 text-green border border-green/20",
+                      )}
+                    >
+                      {role === "manager" ? "Manager" : "Employee"}
+                    </span>
+                  </p>
                 </div>
               </div>
-              <button onClick={resetAll} className="flex items-center justify-center gap-3 w-full bg-red-l border border-red/20 py-5 rounded-xl font-display font-black text-sm uppercase tracking-widest text-red hover:bg-red hover:text-white transition-all shadow-sm">
-                <Trash2 size={20} />
-                Réinitialiser l'application
-              </button>
-            </motion.section>
-          )}
-        </motion.div>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={logout}
+                className="px-4 py-2 bg-red-l text-red border border-red/20 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-red hover:text-white transition-all flex items-center gap-2"
+              >
+                <LogOut size={14} />
+                <span className="hidden sm:inline">Logout</span>
+              </motion.button>
+            </div>
+
+            <div className="p-2 sm:p-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setPinModal({ open: true, role: "employee" })}
+                className="flex items-center gap-3 p-3 rounded-xl hover:bg-bg transition-colors text-left group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-bg border border-border flex items-center justify-center text-txt3 group-hover:text-accent transition-colors">
+                  <UserCircle size={16} />
+                </div>
+                <div>
+                  <p className="font-display font-bold text-sm text-txt group-hover:text-accent transition-colors">
+                    Switch Profile
+                  </p>
+                  <p className="text-[10px] text-txt3 font-medium">
+                    Change session role
+                  </p>
+                </div>
+              </motion.button>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* Manager Controls */}
+        {isEdit && (
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="space-y-3"
+          >
+            <h3 className="text-[10px] text-txt3 uppercase font-black tracking-widest px-2">
+              Manager Workspace
+            </h3>
+            <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+              <div className="p-2 sm:p-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setEmpModal(true)}
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-bg transition-colors text-left group border border-transparent hover:border-border"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-bg border border-border flex items-center justify-center text-txt3 group-hover:text-accent transition-colors">
+                    <Users size={16} />
+                  </div>
+                  <div>
+                    <p className="font-display font-bold text-sm text-txt group-hover:text-accent transition-colors">
+                      Team Members
+                    </p>
+                    <p className="text-[10px] text-txt3 font-medium">
+                      Manage roles & skills
+                    </p>
+                  </div>
+                </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={copyPrevWeek}
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-bg transition-colors text-left group border border-transparent hover:border-border"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-bg border border-border flex items-center justify-center text-txt3 group-hover:text-green transition-colors">
+                    <Copy size={16} />
+                  </div>
+                  <div>
+                    <p className="font-display font-bold text-sm text-txt group-hover:text-green transition-colors">
+                      Copy Last Week
+                    </p>
+                    <p className="text-[10px] text-txt3 font-medium">
+                      Duplicate schedule
+                    </p>
+                  </div>
+                </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-bg transition-colors text-left group border border-transparent hover:border-border"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-bg border border-border flex items-center justify-center text-txt3 group-hover:text-blue-500 transition-colors">
+                    <RefreshCw size={16} />
+                  </div>
+                  <div>
+                    <p className="font-display font-bold text-sm text-txt group-hover:text-blue-500 transition-colors">
+                      Force Sync
+                    </p>
+                    <p className="text-[10px] text-txt3 font-medium">
+                      Refresh data line
+                    </p>
+                  </div>
+                </motion.button>
+              </div>
+            </div>
+          </motion.section>
+        )}
+
+        {/* Display & UI */}
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-3"
+        >
+          <h3 className="text-[10px] text-txt3 uppercase font-black tracking-widest px-2">
+            Display & Interface
+          </h3>
+          <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm p-4 lg:p-6 grid gap-6 sm:grid-cols-2">
+            <div>
+              <p className="font-display font-bold text-sm text-txt mb-4">
+                Theme Preference
+              </p>
+              <div className="flex bg-bg p-1.5 rounded-xl border border-border">
+                {[
+                  { id: "light", label: "Light", icon: Sun },
+                  { id: "dark", label: "Dark", icon: Moon },
+                  { id: "simple", label: "System", icon: Monitor },
+                ].map((t) => {
+                  const active = theme === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => toggleTheme(t.id as any)}
+                      className={cn(
+                        "flex items-center justify-center gap-2 flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all relative z-10",
+                        active ? "text-txt" : "text-txt3 hover:text-txt",
+                      )}
+                    >
+                      {active && (
+                        <motion.div
+                          layoutId="theme-tabrect"
+                          className="absolute inset-0 bg-card border border-border rounded-lg -z-10 shadow-sm"
+                        />
+                      )}
+                      <t.icon
+                        size={14}
+                        className={cn(active ? "text-accent" : "")}
+                      />
+                      <span className="hidden sm:inline">{t.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* Export & Data */}
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="space-y-3"
+        >
+          <h3 className="text-[10px] text-txt3 uppercase font-black tracking-widest px-2">
+            Export & Sharing
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setQrModal(true)}
+              className="flex items-center justify-between bg-card border border-border p-4 lg:p-5 rounded-2xl hover:border-accent hover:shadow-lg hover:shadow-accent/5 transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-accent/10 text-accent flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <QrCode size={24} />
+                </div>
+                <div className="text-left">
+                  <p className="font-display font-bold text-sm text-txt">
+                    Share Schedule
+                  </p>
+                  <p className="text-[10px] text-txt3 font-medium">
+                    Via QR Code & Link
+                  </p>
+                </div>
+              </div>
+              <ChevronRight
+                size={16}
+                className="text-txt3 group-hover:text-accent transition-colors"
+              />
+            </motion.button>
+
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setQrModal(true)}
+              className="flex items-center justify-between bg-card border border-border p-4 lg:p-5 rounded-2xl hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/5 transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <FileText size={24} />
+                </div>
+                <div className="text-left">
+                  <p className="font-display font-bold text-sm text-txt">
+                    Download PDF
+                  </p>
+                  <p className="text-[10px] text-txt3 font-medium">
+                    Export printable grid
+                  </p>
+                </div>
+              </div>
+              <ChevronRight
+                size={16}
+                className="text-txt3 group-hover:text-blue-500 transition-colors"
+              />
+            </motion.button>
+          </div>
+        </motion.section>
+
+        {/* Security & Danger Zone */}
+        {isEdit && (
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="space-y-3 pt-4"
+          >
+            <h3 className="text-[10px] text-red uppercase font-black tracking-widest px-2">
+              Security & Advanced
+            </h3>
+            <div className="bg-card border border-red/20 rounded-2xl overflow-hidden shadow-sm p-4 lg:p-6 space-y-6 relative">
+              <div className="grid grid-cols-1 gap-6 relative z-10">
+                <div className="space-y-2">
+                  <label className="text-[10px] text-txt3 font-black uppercase tracking-widest px-1">
+                    Manager PIN
+                  </label>
+                  <div className="relative">
+                    <Lock
+                      size={14}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-txt3/60"
+                    />
+                    <input
+                      type="password"
+                      value={managerPinInput}
+                      onChange={(e) => updatePin(e.target.value)}
+                      placeholder="••••"
+                      className="w-full bg-bg border border-border rounded-xl pl-9 pr-4 py-3 text-sm font-mono outline-none focus:border-accent transition-colors shadow-inner text-txt"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-red/10 relative z-10">
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={resetAll}
+                  className="flex items-center justify-center gap-3 w-full bg-red/5 border border-red/20 py-4 rounded-xl font-display font-black text-sm tracking-wide text-red hover:bg-red hover:text-white transition-all shadow-sm"
+                >
+                  <Trash2 size={18} />
+                  Factory Reset Application
+                </motion.button>
+                <p className="text-[10px] text-txt3 text-center mt-3 opacity-60">
+                  This action will delete all local data and preferences. Use
+                  with caution.
+                </p>
+              </div>
+            </div>
+          </motion.section>
+        )}
       </div>
     </motion.div>
   );
 
+  const handleNavScrub = (clientX: number, clientY: number) => {
+    const el = document.elementFromPoint(clientX, clientY);
+    const tabId = el?.closest("[data-nav-id]")?.getAttribute("data-nav-id");
+    if (tabId && tabId !== view) {
+      if (typeof navigator !== "undefined" && navigator.vibrate)
+        navigator.vibrate(30);
+      setView(tabId as any);
+    }
+  };
+
+  const handleDayScrub = (clientX: number, clientY: number) => {
+    const el = document.elementFromPoint(clientX, clientY);
+    const dayIdStr = el?.closest("[data-day-id]")?.getAttribute("data-day-id");
+    if (dayIdStr) {
+      const idx = parseInt(dayIdStr, 10);
+      if (idx !== activeDay) {
+        if (typeof navigator !== "undefined" && navigator.vibrate)
+          navigator.vibrate(30);
+        handleDaySelect(idx);
+      }
+    }
+  };
+
   const renderBottomNav = () => (
     <nav
-      className="fixed bottom-6 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[480px] bg-surf/70 backdrop-blur-2xl border border-border/50 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] flex justify-around px-2 pt-1 pb-0.5 lg:pt-1.5 lg:pb-0.5 z-[70]"
+      className="flex-shrink-0 w-full bg-surf/80 backdrop-blur-xl border-t border-border flex justify-around px-2 py-2 sm:py-3 z-[60] touch-none select-none relative"
+      onPointerMove={(e) => {
+        if (e.buttons > 0) {
+          handleNavScrub(e.clientX, e.clientY);
+        }
+      }}
+      onTouchMove={(e) => {
+        handleNavScrub(e.touches[0].clientX, e.touches[0].clientY);
+      }}
     >
       {[
         { id: "dashboard", label: "Home", icon: LayoutDashboard },
         { id: "day", label: "Day", icon: Clock },
         { id: "week", label: "Week", icon: Calendar },
-        {id: "chat", label: "Staff", icon: MessageCircle, hasBadge: hasUnreadChat},
-        {id: "settings", label: "Settings", icon: Settings},
+        {
+          id: "chat",
+          label: "Staff",
+          icon: MessageCircle,
+          hasBadge: hasUnreadChat,
+        },
+        { id: "settings", label: "Settings", icon: Settings },
       ].map((item: any) => {
         const isActive = view === item.id;
         return (
-          <button
+          <motion.button
             key={item.id}
+            data-nav-id={item.id}
+            whileTap={{ scale: 0.9 }}
             onClick={() => {
               setView(item.id as any);
             }}
             className={cn(
-              "flex flex-col items-center gap-1.5 px-2 py-1.5 rounded-lg transition-all duration-500 relative group active:scale-90",
-              isActive 
-                ? "text-accent" 
-                : "text-txt3 hover:text-accent"
+              "flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-all duration-500 relative group",
+              isActive ? "text-accent" : "text-txt3 hover:text-accent",
             )}
           >
             {isActive && (
@@ -1553,17 +2018,25 @@ export default function App() {
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               />
             )}
-            <item.icon size={isActive ? 24 : 22} className={cn("transition-transform duration-300", isActive ? "scale-110" : "group-hover:scale-110")} />
-            <span className={cn(
-              "text-[9px] font-black uppercase tracking-[0.1em] transition-all duration-300",
-              isActive ? "opacity-100 translate-y-0" : "opacity-40"
-            )}>
+            <item.icon
+              size={isActive ? 24 : 22}
+              className={cn(
+                "transition-transform duration-300",
+                isActive ? "scale-110" : "group-hover:scale-110",
+              )}
+            />
+            <span
+              className={cn(
+                "text-[9px] font-black uppercase tracking-[0.1em] transition-all duration-300",
+                isActive ? "opacity-100 translate-y-0" : "opacity-40",
+              )}
+            >
               {item.label}
             </span>
             {item.hasBadge && (
               <span className="absolute top-3 right-4 w-2 h-2 bg-red rounded-full border-2 border-surf animate-pulse" />
             )}
-          </button>
+          </motion.button>
         );
       })}
     </nav>
@@ -1579,9 +2052,9 @@ export default function App() {
           <div className="flex items-center gap-4 lg:gap-6">
             <div className="flex-shrink-0">
               <img
-                src="https://upload.wikimedia.org/wikipedia/commons/archive/e/e6/20161208013146%21Lee_cooper_logo.svg"
+                src="https://upload.wikimedia.org/wikipedia/commons/e/e6/Lee_cooper_logo.svg"
                 alt="Lee Cooper"
-                className="h-10 lg:h-16 w-auto"
+                className="h-10 lg:h-16 w-auto dark:invert"
               />
             </div>
             <div>
@@ -1610,15 +2083,22 @@ export default function App() {
             </AnimatePresence>
 
             <button
-              onClick={() => isEdit ? setIsEdit(false) : handleRoleSelect("manager")}
+              onClick={() =>
+                isEdit ? setIsEdit(false) : handleRoleSelect("manager")
+              }
               className={cn(
                 "hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase border transition-all active:scale-95",
-                isEdit 
-                  ? "bg-green text-white border-green shadow-[0_8px_20px_-4px_rgba(34,197,94,0.4)]" 
-                  : "bg-amber text-white border-amber shadow-[0_8px_20px_-4px_rgba(245,158,11,0.4)]"
+                isEdit
+                  ? "bg-green text-white border-green shadow-[0_8px_20px_-4px_rgba(34,197,94,0.4)]"
+                  : "bg-amber text-white border-amber shadow-[0_8px_20px_-4px_rgba(245,158,11,0.4)]",
               )}
             >
-              <div className={cn("w-1.5 h-1.5 rounded-full bg-white", isEdit ? "animate-pulse" : "")} />
+              <div
+                className={cn(
+                  "w-1.5 h-1.5 rounded-full bg-white",
+                  isEdit ? "animate-pulse" : "",
+                )}
+              />
               {isEdit ? "Mode Édition" : "Mode Consultation"}
             </button>
 
@@ -1643,192 +2123,206 @@ export default function App() {
               onClick={logout}
               className="p-2 lg:p-3 border border-border bg-card hover:bg-red-l rounded-xl text-red transition-all group active:scale-95"
             >
-              <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
+              <LogOut
+                size={20}
+                className="group-hover:rotate-12 transition-transform"
+              />
             </button>
           </div>
         </div>
       </header>
 
-      {renderBottomNav()}
-
       {/* --- Main Content --- */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 lg:p-8 flex flex-col min-h-0 space-y-4 lg:space-y-8 pb-32 lg:pb-12 relative z-0">
-        {view !== "chat" && view !== "settings" && (
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 lg:p-8 flex flex-col min-h-0 space-y-4 lg:space-y-8 pb-20 lg:pb-12 relative z-0">
+        {(view === "day" || view === "week") && (
           <div
             className={cn(
               "flex-shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-6",
               (view === "day" || view === "week") && "hidden sm:grid",
             )}
           >
-          {[
-            {
-              label: "Total Semaine",
-              value: `${grandTotal}h`,
-              sub: "Heures planifiées",
-              icon: Calendar,
-              color: "text-accent",
-            },
-            {
-              label: "Moyenne / Jour",
-              value: `${avgPerDay}h`,
-              sub: "Par journée",
-              icon: Clock,
-              color: "text-txt",
-            },
-            {
-              label: "Effectif",
-              value: employees.length,
-              sub: "Agents actifs",
-              icon: Users,
-              color: "text-txt",
-            },
-            {
-              label: "Jours Repos",
-              value: offDays,
-              sub: "Temps libre",
-              icon: Moon,
-              color: "text-txt",
-            },
-          ].map((stat, i) => (
-            <div
-              key={i}
-              className="bg-card border border-border px-5 py-4 lg:py-6 rounded-xl shadow-sm relative overflow-hidden group transition-all duration-300 hover:border-accent/40"
-            >
-              <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-                <stat.icon size={48} />
+            {[
+              {
+                label: "Total Semaine",
+                value: `${grandTotal}h`,
+                sub: "Heures planifiées",
+                icon: Calendar,
+                color: "text-accent",
+              },
+              {
+                label: "Moyenne / Jour",
+                value: `${avgPerDay}h`,
+                sub: "Par journée",
+                icon: Clock,
+                color: "text-txt",
+              },
+              {
+                label: "Effectif",
+                value: employees.length,
+                sub: "Agents actifs",
+                icon: Users,
+                color: "text-txt",
+              },
+              {
+                label: "Jours Repos",
+                value: offDays,
+                sub: "Temps libre",
+                icon: Moon,
+                color: "text-txt",
+              },
+            ].map((stat, i) => (
+              <div
+                key={i}
+                className="bg-card border border-border px-5 py-4 lg:py-6 rounded-xl shadow-sm relative overflow-hidden group transition-all duration-300 hover:border-accent/40"
+              >
+                <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <stat.icon size={48} />
+                </div>
+                <p className="text-[10px] font-sans font-bold text-txt3 uppercase tracking-[0.1em] mb-1.5">
+                  {stat.label}
+                </p>
+                <div className="flex items-baseline gap-1">
+                  <span
+                    className={cn(
+                      "text-2xl lg:text-3xl font-bold tracking-tighter",
+                      stat.color,
+                    )}
+                  >
+                    {stat.value}
+                  </span>
+                </div>
+                <p className="text-[9px] text-txt3 font-mono mt-2 flex items-center gap-1.5">
+                  <span className="w-1 h-1 rounded-full bg-accent animate-pulse" />
+                  {stat.sub}
+                </p>
               </div>
-              <p className="text-[10px] font-sans font-bold text-txt3 uppercase tracking-[0.1em] mb-1.5">
-                {stat.label}
-              </p>
-              <div className="flex items-baseline gap-1">
-                <span
-                  className={cn(
-                    "text-2xl lg:text-3xl font-bold tracking-tighter",
-                    stat.color,
-                  )}
-                >
-                  {stat.value}
-                </span>
-              </div>
-              <p className="text-[9px] text-txt3 font-mono mt-2 flex items-center gap-1.5">
-                <span className="w-1 h-1 rounded-full bg-accent animate-pulse" />
-                {stat.sub}
-              </p>
-            </div>
-          ))}
+            ))}
           </div>
         )}
 
         {/* Week Selection & View Controls */}
-        {view !== "chat" && view !== "settings" && (
+        {(view === "day" || view === "week") && (
           <>
             <div className="flex-shrink-0 flex flex-col sm:flex-row items-center gap-3 lg:gap-4 bg-card border border-border p-2 lg:p-4 rounded-2xl shadow-sm">
-          <div className="flex items-center gap-1.5 w-full sm:w-auto">
-            <button
-              onClick={() => changeWeek(-1)}
-              className="p-2 border border-border rounded-xl text-txt3 hover:text-accent hover:bg-accent-l transition-all"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <div className="flex-1 text-center sm:min-w-[180px] px-4">
-              <span className="font-mono font-bold text-xs lg:text-sm text-txt">
-                {weekLabel(monday)}
-              </span>
+              <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                <button
+                  onClick={() => changeWeek(-1)}
+                  className="p-2 border border-border rounded-xl text-txt3 hover:text-accent hover:bg-accent-l transition-all"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <div className="flex-1 text-center sm:min-w-[180px] px-4">
+                  <span className="font-mono font-bold text-xs lg:text-sm text-txt">
+                    {weekLabel(monday)}
+                  </span>
+                </div>
+                <button
+                  onClick={() => changeWeek(1)}
+                  disabled={monday >= maxMonday}
+                  className="p-2 border border-border rounded-xl text-txt3 hover:text-accent hover:bg-accent-l transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-txt3"
+                >
+                  <ChevronRight size={18} />
+                </button>
+                <button
+                  onClick={() => {
+                    if (!isSameDay(monday, realMonday)) {
+                      setMonday(realMonday);
+                      const dataKey = `${STORAGE_KEYS.DATA_PREFIX}${format(realMonday, "yyyy_MM_dd")}`;
+                      const savedData = localStorage.getItem(dataKey);
+                      if (savedData) {
+                        setData(JSON.parse(savedData));
+                      } else {
+                        const initial = getBlankWeek(realMonday, employees);
+                        setData(initial);
+                        localStorage.setItem(dataKey, JSON.stringify(initial));
+                      }
+                      setUndoStack([]);
+                      setRedoStack([]);
+                    }
+                  }}
+                  className="p-2 border border-border rounded-xl text-txt3 hover:text-accent hover:bg-accent-l transition-all"
+                  title="Aujourd'hui"
+                >
+                  <History size={16} />
+                </button>
+              </div>
             </div>
-            <button
-              onClick={() => changeWeek(1)}
-              disabled={monday >= maxMonday}
-              className="p-2 border border-border rounded-xl text-txt3 hover:text-accent hover:bg-accent-l transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-txt3"
-            >
-              <ChevronRight size={18} />
-            </button>
-            <button
-              onClick={() => {
-                if (!isSameDay(monday, realMonday)) {
-                  setMonday(realMonday);
-                  const dataKey = `${STORAGE_KEYS.DATA_PREFIX}${format(realMonday, "yyyy_MM_dd")}`;
-                  const savedData = localStorage.getItem(dataKey);
-                  if (savedData) {
-                    setData(JSON.parse(savedData));
-                  } else {
-                    const initial = getBlankWeek(realMonday, employees);
-                    setData(initial);
-                    localStorage.setItem(dataKey, JSON.stringify(initial));
-                  }
-                  setUndoStack([]);
-                  setRedoStack([]);
+
+            {/* Day Totals Bar */}
+            <div
+              className={cn(
+                "flex-shrink-0 grid grid-cols-7 gap-1.5 lg:gap-4 overflow-x-auto no-scrollbar touch-none select-none",
+                view === "day" && "lg:grid",
+              )}
+              onPointerMove={(e) => {
+                if (e.buttons > 0) {
+                  handleDayScrub(e.clientX, e.clientY);
                 }
               }}
-              className="p-2 border border-border rounded-xl text-txt3 hover:text-accent hover:bg-accent-l transition-all"
-              title="Aujourd'hui"
+              onTouchMove={(e) => {
+                handleDayScrub(e.touches[0].clientX, e.touches[0].clientY);
+              }}
             >
-              <History size={16} />
-            </button>
-          </div>
-        </div>
-
-        {/* Day Totals Bar */}
-        <div
-          className={cn(
-            "flex-shrink-0 grid grid-cols-7 gap-1.5 lg:gap-4 overflow-x-auto no-scrollbar",
-            view === "day" && "lg:grid",
-          )}
-        >
-          {data.map((day, idx) => {
-            const isToday = isSameDay(addDays(monday, idx), new Date());
-            const total = day.shifts.reduce(
-              (acc, sh) =>
-                acc +
-                (sh.off ? 0 : sh.s.reduce((a, b: number) => a + (b || 0), 0)),
-              0,
-            );
-            return (
-              <button
-                key={day.id}
-                onClick={() => handleDaySelect(idx)}
-                className={cn(
-                  "flex flex-col items-center py-2 lg:py-5 border rounded-xl transition-all duration-300 group",
-                  activeDay === idx
-                    ? "bg-accent text-white border-accent shadow-lg shadow-accent/20 scale-105"
-                    : isToday
-                      ? "bg-amber-l border-amber/40 hover:border-amber"
-                      : "bg-card border-border hover:border-txt3",
-                )}
-              >
-                <span
-                  className={cn(
-                    "text-[9px] lg:text-xs font-bold uppercase tracking-widest",
-                    activeDay === idx
-                      ? "text-white/80"
-                      : isToday
-                        ? "text-amber"
-                        : "text-txt3",
-                  )}
-                >
-                  {day.id}
-                </span>
-                <span
-                  className={cn(
-                    "text-xs lg:text-xl font-bold mt-0.5 lg:mt-1",
-                    activeDay === idx
-                      ? "text-white"
-                      : isToday
-                        ? "text-amber"
-                        : "text-txt",
-                  )}
-                >
-                  {total}h
-                </span>
-              </button>
-            );
-          })}
-        </div>
+              {data.map((day, idx) => {
+                const isToday = isSameDay(addDays(monday, idx), new Date());
+                const total = day.shifts.reduce(
+                  (acc, sh) =>
+                    acc +
+                    (sh.off
+                      ? 0
+                      : sh.s.reduce((a, b: number) => a + (b || 0), 0)),
+                  0,
+                );
+                return (
+                  <button
+                    key={day.id}
+                    data-day-id={idx}
+                    onClick={() => handleDaySelect(idx)}
+                    className={cn(
+                      "flex flex-col items-center py-2 lg:py-5 border rounded-xl transition-all duration-300 group",
+                      activeDay === idx
+                        ? "bg-accent text-white border-accent shadow-lg shadow-accent/20 scale-105"
+                        : isToday
+                          ? "bg-amber-l border-amber/40 hover:border-amber"
+                          : "bg-card border-border hover:border-txt3",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "text-[9px] lg:text-xs font-bold uppercase tracking-widest",
+                        activeDay === idx
+                          ? "text-white/80"
+                          : isToday
+                            ? "text-amber"
+                            : "text-txt3",
+                      )}
+                    >
+                      {day.id}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-xs lg:text-xl font-bold mt-0.5 lg:mt-1",
+                        activeDay === idx
+                          ? "text-white"
+                          : isToday
+                            ? "text-amber"
+                            : "text-txt",
+                      )}
+                    >
+                      {total}h
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </>
         )}
 
         {/* --- Area Specific Content --- */}
         <AnimatePresence mode="wait">
-          {view === "dashboard" && role === "manager" && renderManagerDashboard()}
+          {view === "dashboard" &&
+            role === "manager" &&
+            renderManagerDashboard()}
 
           {view === "dashboard" && role === "employee" && renderPersonalView()}
 
@@ -1843,21 +2337,24 @@ export default function App() {
             >
               {/* Day Card */}
               {data[activeDay] && (
-                <div className="flex-1 min-h-0 bg-card sm:border sm:border-border sm:rounded-3xl lg:rounded-[3rem] shadow-xl overflow-hidden flex flex-col relative">
+                <div className="flex-1 min-h-0 bg-card border border-border rounded-xl shadow-xl overflow-hidden flex flex-col relative">
                   <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.02)_0%,transparent_100%)] pointer-events-none" />
 
                   <div className="flex-shrink-0 p-4 lg:p-10 bg-surf/80 backdrop-blur-md border-b border-border flex items-center justify-between z-10">
                     <div className="flex items-center gap-4 lg:gap-8">
-                      <div className="w-12 h-12 lg:w-24 lg:h-24 bg-accent/5 border border-accent/20 rounded-[1.25rem] lg:rounded-[2rem] flex items-center justify-center text-accent font-display font-black text-xl lg:text-5xl shadow-inner">
+                      <div className="w-12 h-12 lg:w-20 lg:h-20 bg-accent/5 border border-accent/20 rounded-xl flex items-center justify-center text-accent font-display font-black text-xl lg:text-4xl shadow-inner">
                         {data[activeDay].full.slice(0, 1)}
                       </div>
                       <div>
-                        <h2 className="text-xl lg:text-4xl font-display font-bold tracking-tight text-txt uppercase">
+                        <h2 className="text-xl lg:text-4xl font-display font-bold tracking-tight text-txt uppercase leading-tight">
                           {data[activeDay].full}
                         </h2>
                         <div className="flex items-center gap-2 mt-1 lg:mt-3">
-                          <span className="text-[10px] lg:text-base text-txt3 font-mono tracking-widest uppercase bg-card2/50 px-2 lg:px-4 py-0.5 lg:py-1 rounded-full border border-border">
+                          <span className="text-[10px] lg:text-sm text-txt3 font-mono tracking-widest uppercase bg-card2/50 px-2 lg:px-4 py-0.5 lg:py-1 rounded-full border border-border">
                             {data[activeDay].date}
+                          </span>
+                          <span className="text-[10px] text-accent/60 font-black uppercase tracking-widest px-2 py-0.5 bg-accent/5 border border-accent/10 rounded-full">
+                            Coverage Optimized
                           </span>
                         </div>
                       </div>
@@ -1893,7 +2390,7 @@ export default function App() {
                   <div className="flex-1 min-h-0 w-full overflow-y-auto no-scrollbar bg-card2/20">
                     <div className="w-full flex flex-col pt-4 lg:pt-8 px-2 lg:px-10 pb-48">
                       {/* Time Ruler */}
-                      <div className="flex-shrink-0 flex items-center px-2 lg:px-8 py-3 lg:py-6 bg-surf border border-border shadow-sm rounded-xl lg:rounded-2xl mb-4 lg:mb-8 sticky top-0 z-20">
+                      <div className="flex-shrink-0 flex items-center px-2 lg:px-8 py-3 lg:py-6 bg-surf border border-border shadow-sm rounded-xl lg:rounded-2xl mb-4 lg:mb-8 lg:sticky top-0 z-20">
                         <div className="w-[65px] lg:w-[150px] shrink-0 text-[8px] lg:text-xs font-display font-black text-txt3 tracking-[0.1em] uppercase mr-1.5 lg:mr-4">
                           Équipe
                         </div>
@@ -1934,7 +2431,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="bg-surf border border-border rounded-xl lg:rounded-[2.5rem] shadow-sm divide-y divide-border/30 overflow-hidden">
+                      <div className="bg-surf border border-border rounded-xl shadow-sm divide-y divide-border/30 overflow-hidden">
                         {employees.map((emp, ei) => (
                           <DayRow
                             key={emp.name}
@@ -1962,7 +2459,7 @@ export default function App() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="flex-1 min-h-0 overflow-y-auto no-scrollbar bg-card border border-border rounded-xl lg:rounded-3xl p-2 lg:p-6 shadow-lg flex flex-col pb-32"
+              className="flex-1 min-h-0 overflow-y-auto no-scrollbar bg-card border border-border rounded-xl p-2 lg:p-6 shadow-lg flex flex-col pb-20"
             >
               {/* Main Content Area */}
               <div className="space-y-4 lg:space-y-6">
@@ -2028,18 +2525,28 @@ export default function App() {
                               0,
                             );
 
+                            const matchScore = calculateMatchScore(emp, day);
+
                             return (
                               <div
                                 key={emp.name}
-                                className="flex items-center h-5 lg:h-6"
+                                className="flex items-center h-5 lg:h-6 group/row relative"
                               >
+                                {isEdit && matchScore < 100 && (
+                                  <div
+                                    className="absolute -left-2 top-1.5 w-1 h-1 rounded-full bg-accent animate-pulse shadow-[0_0_8px_rgba(230,57,70,0.4)]"
+                                    title={`Match Qualité: ${matchScore}%`}
+                                  />
+                                )}
                                 <div
                                   className={cn(
-                                    "w-8 lg:w-12 shrink-0 flex items-center justify-center font-display font-black text-xs transition-colors",
+                                    "w-8 lg:w-12 shrink-0 flex items-center justify-center font-display font-black text-[10px] lg:text-xs transition-colors",
                                     isEdit
                                       ? "cursor-pointer hover:opacity-75"
                                       : "",
-                                    ei === employeeIdx ? "text-me" : "text-txt3"
+                                    ei === employeeIdx
+                                      ? "text-me"
+                                      : "text-txt3",
                                   )}
                                   onClick={() => isEdit && toggleDayOff(di, ei)}
                                 >
@@ -2078,7 +2585,9 @@ export default function App() {
                                           )}
                                           style={{
                                             backgroundColor: v
-                                              ? (ei === employeeIdx ? "var(--me)" : "var(--accent)")
+                                              ? ei === employeeIdx
+                                                ? "var(--me)"
+                                                : "var(--accent)"
                                               : "var(--border2)",
                                             opacity: v ? 0.9 : 0.3,
                                           }}
@@ -2090,7 +2599,11 @@ export default function App() {
                                 <div
                                   className={cn(
                                     "w-10 lg:w-12 shrink-0 text-right pr-1 font-display font-black text-[10px] lg:text-xs transition-colors",
-                                    shift.off ? "text-txt3 opacity-40" : ei === employeeIdx ? "text-me font-black" : "text-txt opacity-70"
+                                    shift.off
+                                      ? "text-txt3 opacity-40"
+                                      : ei === employeeIdx
+                                        ? "text-me font-black"
+                                        : "text-txt opacity-70",
                                   )}
                                 >
                                   {shift.off ? "—" : `${hours}h`}
@@ -2121,12 +2634,17 @@ export default function App() {
                   <div key={e.name} className="flex items-center gap-2">
                     <div
                       className="w-3 h-3 rounded-full shadow-sm"
-                      style={{ backgroundColor: ei === employeeIdx ? "var(--me)" : "var(--accent)" }}
+                      style={{
+                        backgroundColor:
+                          ei === employeeIdx ? "var(--me)" : "var(--accent)",
+                      }}
                     />
-                    <span className={cn(
-                      "text-[10px] font-display font-black uppercase tracking-widest transition-colors",
-                      ei === employeeIdx ? "text-me" : "text-txt2 opacity-70"
-                    )}>
+                    <span
+                      className={cn(
+                        "text-[10px] font-display font-black uppercase tracking-widest transition-colors",
+                        ei === employeeIdx ? "text-me" : "text-txt2 opacity-70",
+                      )}
+                    >
                       {e.name}
                     </span>
                   </div>
@@ -2199,6 +2717,8 @@ export default function App() {
         </AnimatePresence>
       </main>
 
+      {renderBottomNav()}
+
       {/* --- Day Team Popup --- */}
       <AnimatePresence>
         {selectedDayPopup !== null && (
@@ -2236,15 +2756,22 @@ export default function App() {
                     >
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-display font-black text-[10px]"
-                        style={{ backgroundColor: ei === employeeIdx ? "var(--me)" : "var(--accent)" }}
+                        style={{
+                          backgroundColor:
+                            ei === employeeIdx ? "var(--me)" : "var(--accent)",
+                        }}
                       >
                         {emp.name.slice(0, 2)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={cn(
-                          "font-display font-black text-xs truncate uppercase tracking-tight",
-                          ei === employeeIdx ? "text-me" : "text-txt opacity-70"
-                        )}>
+                        <p
+                          className={cn(
+                            "font-display font-black text-xs truncate uppercase tracking-tight",
+                            ei === employeeIdx
+                              ? "text-me"
+                              : "text-txt opacity-70",
+                          )}
+                        >
                           {emp.name}
                         </p>
                         <div className="flex items-center gap-1 mt-1">
@@ -2260,7 +2787,9 @@ export default function App() {
                                   className="flex-1 rounded-sm"
                                   style={{
                                     backgroundColor: v
-                                      ? (ei === employeeIdx ? "var(--me)" : "var(--accent)")
+                                      ? ei === employeeIdx
+                                        ? "var(--me)"
+                                        : "var(--accent)"
                                       : "rgba(0,0,0,0.05)",
                                   }}
                                 />
@@ -2331,14 +2860,23 @@ export default function App() {
                             <div className="flex items-center gap-2">
                               <div
                                 className="w-6 h-6 rounded-lg flex items-center justify-center text-white font-display font-black text-[8px]"
-                                style={{ backgroundColor: ei === employeeIdx ? "var(--me)" : "var(--accent)" }}
+                                style={{
+                                  backgroundColor:
+                                    ei === employeeIdx
+                                      ? "var(--me)"
+                                      : "var(--accent)",
+                                }}
                               >
                                 {emp.name.slice(0, 2)}
                               </div>
-                              <span className={cn(
-                                "font-display font-black text-[10px] truncate max-w-[80px] transition-colors",
-                                ei === employeeIdx ? "text-me" : "text-txt opacity-70"
-                              )}>
+                              <span
+                                className={cn(
+                                  "font-display font-black text-[10px] truncate max-w-[80px] transition-colors",
+                                  ei === employeeIdx
+                                    ? "text-me"
+                                    : "text-txt opacity-70",
+                                )}
+                              >
                                 {emp.name.split(" ")[0]}
                               </span>
                             </div>
@@ -2408,6 +2946,7 @@ export default function App() {
             role={pinModal.role}
             onUnlock={handleUnlock}
             onClose={() => setPinModal(null)}
+            employees={employees}
           />
         )}
       </AnimatePresence>
@@ -2424,12 +2963,17 @@ export default function App() {
                 >
                   <div
                     className="w-8 h-8 rounded-lg flex-shrink-0"
-                    style={{ backgroundColor: i === employeeIdx ? "var(--me)" : "var(--accent)" }}
+                    style={{
+                      backgroundColor:
+                        i === employeeIdx ? "var(--me)" : "var(--accent)",
+                    }}
                   />
-                  <span className={cn(
-                    "font-display font-black flex-1 uppercase tracking-tight",
-                    i === employeeIdx ? "text-me" : "text-txt opacity-70"
-                  )}>
+                  <span
+                    className={cn(
+                      "font-display font-black flex-1 uppercase tracking-tight",
+                      i === employeeIdx ? "text-me" : "text-txt opacity-70",
+                    )}
+                  >
                     {emp.name}
                   </span>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -2496,7 +3040,7 @@ export default function App() {
         <Modal title="Partager / Export" onClose={() => setQrModal(false)}>
           <div className="flex flex-col gap-6 p-4">
             <div className="flex flex-col items-center gap-2">
-              <div className="bg-white p-4 rounded-3xl border border-border shadow-inner">
+              <div className="bg-white p-4 rounded-xl border border-border shadow-inner">
                 <QRCodeSVG value={JSON.stringify(data)} size={150} level="M" />
               </div>
               <p className="text-xs text-txt3 text-center">Sync Planning</p>
@@ -2639,32 +3183,49 @@ function PinModal({
   role,
   onUnlock,
   onClose,
+  employees
 }: {
   role: AccessRole;
-  onUnlock: (s: boolean) => void;
+  onUnlock: (s: boolean, empIdx?: number | null) => void;
   onClose: () => void;
+  employees: Employee[];
 }) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
 
-  const expectedPin =
-    localStorage.getItem(
-      role === "manager" ? STORAGE_KEYS.PIN : STORAGE_KEYS.STAFF_PIN,
-    ) || (role === "manager" ? DEFAULT_PIN : DEFAULT_EMPLOYEE_PIN);
+  const managerPin = localStorage.getItem(STORAGE_KEYS.PIN) || DEFAULT_PIN;
 
   const handleInput = (val: string) => {
     if (val.length > 4) return;
     setPin(val);
     setError(false);
     if (val.length === 4) {
-      if (val === expectedPin) {
-        onUnlock(true);
+      if (role === "manager") {
+         if (val === managerPin) {
+           onUnlock(true, null);
+         } else {
+           setError(true);
+           setTimeout(() => {
+             setPin("");
+             setError(false);
+           }, 600);
+         }
       } else {
-        setError(true);
-        setTimeout(() => {
-          setPin("");
-          setError(false);
-        }, 600);
+         // Employee role: find employee with matching PIN
+         const foundIdx = employees.findIndex((e, i) => {
+           const expected = e.pin || String(i + 1).padStart(4, "0");
+           return val === expected;
+         });
+         
+         if (foundIdx !== -1) {
+           onUnlock(true, foundIdx);
+         } else {
+           setError(true);
+           setTimeout(() => {
+             setPin("");
+             setError(false);
+           }, 600);
+         }
       }
     }
   };
@@ -2676,24 +3237,23 @@ function PinModal({
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-overlay/20 backdrop-blur-sm"
     >
-      <div
-        className="absolute inset-0"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0" onClick={onClose} />
       <motion.div
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         className={cn(
           "w-full max-w-sm bg-card border border-border rounded-2xl p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] relative z-10 text-center",
-          error ? "animate-shake border-red/50 shadow-[0_0_40px_rgba(230,57,70,0.2)]" : "",
+          error
+            ? "animate-shake border-red/50 shadow-[0_0_40px_rgba(230,57,70,0.2)]"
+            : "",
         )}
       >
         <div className="mb-6 relative inline-block">
-          <motion.div 
+          <motion.div
             animate={error ? { x: [0, -10, 10, -10, 10, 0] } : {}}
             className={cn(
               "w-16 h-16 rounded-full flex items-center justify-center text-white shadow-lg transition-colors duration-300",
-              error ? "bg-red shadow-red/30" : "bg-accent shadow-accent/30"
+              error ? "bg-red shadow-red/30" : "bg-accent shadow-accent/30",
             )}
           >
             {role === "manager" ? <Lock size={28} /> : <User size={28} />}
@@ -2713,12 +3273,14 @@ function PinModal({
               initial={false}
               animate={{
                 scale: pin.length > idx ? 1.2 : 1,
-                backgroundColor: pin.length > idx ? "var(--accent)" : "transparent",
-                borderColor: pin.length > idx ? "var(--accent)" : "var(--border2)",
+                backgroundColor:
+                  pin.length > idx ? "var(--accent)" : "transparent",
+                borderColor:
+                  pin.length > idx ? "var(--accent)" : "var(--border2)",
               }}
               className={cn(
                 "w-3.5 h-3.5 rounded-full border-2 transition-all duration-200",
-                pin.length > idx && "shadow-[0_0_15px_rgba(230,57,70,0.4)]"
+                pin.length > idx && "shadow-[0_0_15px_rgba(230,57,70,0.4)]",
               )}
             />
           ))}
@@ -2739,17 +3301,22 @@ function PinModal({
                 "h-16 rounded-full flex flex-col items-center justify-center transition-all",
                 typeof k === "number"
                   ? "bg-bg/50 border border-border/50 text-xl font-display font-black"
-                  : "text-txt3 text-[10px] uppercase font-bold tracking-widest"
+                  : "text-txt3 text-[10px] uppercase font-bold tracking-widest",
               )}
             >
-              {k === "back" ? <RotateCcw size={18} /> : 
-               k === "clear" ? "Effacer" : k}
+              {k === "back" ? (
+                <RotateCcw size={18} />
+              ) : k === "clear" ? (
+                "Effacer"
+              ) : (
+                k
+              )}
             </motion.button>
           ))}
         </div>
 
         {error && (
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             className="mt-6 text-red text-[10px] font-black uppercase tracking-[0.2em]"
@@ -2787,9 +3354,11 @@ function Modal({
         <div className="flex-shrink-0 w-full flex flex-col items-center">
           {/* Grab Handle */}
           <div className="w-12 h-1 bg-border rounded-full mt-4 flex-shrink-0 opacity-40" />
-          
+
           <div className="w-full px-8 py-6 border-b border-border bg-surf/50 backdrop-blur-md flex items-center justify-between">
-            <h2 className="text-xl font-display font-black tracking-tight uppercase">{title}</h2>
+            <h2 className="text-xl font-display font-black tracking-tight uppercase">
+              {title}
+            </h2>
             <button
               onClick={onClose}
               className="p-2 border border-border rounded-xl text-txt3 hover:text-accent hover:bg-card2 transition-all active:scale-90"
